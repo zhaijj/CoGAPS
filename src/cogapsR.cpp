@@ -26,6 +26,10 @@
 #include <Rcpp.h>
 // ------------------------------------------------------
 
+// ----- use progress bar for monitoring progress
+#include <progress.hpp>
+//
+
 //namespace bpo = boost::program_options;
 using namespace std;
 using namespace gaps;
@@ -378,6 +382,8 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
 	Rcpp::NumericVector nPEquil(nEquil);
 	Rcpp::NumericVector nPSamp(nSample);
 
+    Progress p(nEquil + nSample, true);
+
   for (unsigned long ext_iter=1; ext_iter <= nEquil; ++ext_iter){
     GibbsSamp.set_iter(ext_iter);
     GibbsSamp.set_AnnealingTemperature();
@@ -407,20 +413,8 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
 	nAEquil[outCount] = tempAtomA;
 	nPEquil[outCount] = tempAtomP;
 	outCount++;
-    if ( ext_iter % numOutputs == 0){
-      //chi2 = 2.*GibbsSamp.cal_logLikelihood();
-	  
 
-	  //COMMENTED OUT FOR THE R VERSION
-      //GibbsSamp.output_computing_info(outputFilename,ext_iter,nEquil,0,nSample)
-	  //---------------------------------
-      Rcpp::Rcout << "Equil:" << ext_iter << " of " << nEquil << 
-              ", Atoms:" << tempAtomA << "("
-	      << tempAtomP << ")" <<
-	// " ,chi2 = " << chi2 <<
-              "  Chi2 = " << tempChiSq << endl;
-		
-    }
+    p.increment();
 
     // -------------------------------------------
     // re-calculate nIterA and nIterP to the expected number of atoms 
@@ -431,7 +425,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
     // --------------------------------------------
 
   }  // end of for-block for equilibration
-  
+
   // ===========================================================================
   // Part 2.5) Equilibration Settling:
   // Allow the Equilibration to settle for 10% of the set Equilibrations 
@@ -511,29 +505,12 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
 		nASamp[outCount] = tempAtomA;
 		nPSamp[outCount] = tempAtomP;
 		outCount++;
-    if ( i % numOutputs == 0){
-	
-      // chi2 = 2.*GibbsSamp.cal_logLikelihood();
-      //GibbsSamp.output_atomicdomain('A',(unsigned long) statindx);
-      //GibbsSamp.output_atomicdomain('P',(unsigned long) statindx
-	  
-	  //COMMENTED OUT FOR THE R VERSION
-      //GibbsSamp.output_computing_info(outputFilename,nEquil,nEquil,i,nSample);
-	  //----------------------------------
-        Rcpp::Rcout << "Samp: " << i << " of " << nSample <<
-        ", Atoms:" << tempAtomA << "("
-        << tempAtomP << ")" <<
-        // " ,chi2 = " << chi2 <<
-        "  Chi2 = " << tempChiSq << endl;
-		
-	
-		
-      if (i == nSample){
-         chi2 = 2.*GibbsSamp.cal_logLikelihood();
-	 Rcpp::Rcout << " *** Check value of final chi2: " << chi2 << " **** " << endl; 
-      }
-	 
 
+    p.increment();
+
+    if (i == nSample){
+       chi2 = 2.*GibbsSamp.cal_logLikelihood();
+       Rcpp::Rcout << " *** Check value of final chi2: " << chi2 << " **** " << endl; 
     }
 	
 	if (SampleSnapshots && (i % (nSample/numSnapshots) == 0))

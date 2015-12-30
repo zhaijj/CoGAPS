@@ -177,6 +177,7 @@ gapsRun <- function(D, S, ABins = data.frame(), PBins = data.frame(),
 
   #   }
 
+  message("Equilibrium and Sampling percent completion")
 
   geneNames = rownames(D);
   sampleNames = colnames(D);
