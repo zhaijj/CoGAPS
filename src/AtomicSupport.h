@@ -74,7 +74,7 @@ namespace gaps {
 	   distribution on number of atoms. Propose methods are
 	   below makeProposal. 
     */
-    void makeProposal();
+    void makeProposal(double rng);
 	
 	void ProposeBirth();
 	void ProposeDeath();
@@ -153,9 +153,7 @@ namespace gaps {
     map<unsigned long long, double> _proposedAtoms;
 
     // deletion functions that properly clean up the memory
-    void cleanDeleteProposal(map<unsigned long long, double>::const_iterator iter);
     void cleanDeleteProposalLocation(unsigned long long location);
-    void cleanDeleteAtomic(map<unsigned long long, double>::const_iterator iter);
     void cleanDeleteAtomicLocation(unsigned long long location);
     void cleanClearProposal();
     void cleanClearAtomic();
