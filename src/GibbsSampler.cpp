@@ -461,9 +461,9 @@ void GibbsSampler::output_computing_info(char outputFilename[],
 unsigned int GibbsSampler::getRow( char matrix_label ,unsigned int iBin){
   switch(matrix_label){ 
   case 'A':  // A - horizontal addressing implicit
-    { return (floor(iBin / _nFactor)); break;}
+    { return (floor(iBin / _nFactor));}
   case 'P':  // P - vertical addressing implicit
-    { return iBin % _nFactor; break;}
+    { return iBin % _nFactor;}
   }
   
   // EJF dummy return to avoid warnings
@@ -473,9 +473,9 @@ unsigned int GibbsSampler::getRow( char matrix_label ,unsigned int iBin){
 unsigned int GibbsSampler::getCol(char matrix_label ,unsigned int iBin){
   switch(matrix_label){
   case 'A':  // A - horizontal addressing implicit
-    { return iBin % _nFactor; break;}
+    { return iBin % _nFactor;}
   case 'P':  // P - vertical addressing implicit
-    { return floor(iBin / _nFactor); break;}
+    { return floor(iBin / _nFactor);}
   }
   
   // EJF dummy return to avoid warnings
@@ -487,11 +487,9 @@ unsigned int GibbsSampler::getTotNumAtoms(char matrix_label){
 
   switch(matrix_label){
   case 'A':
-    { return _AAtomicdomain.getNAtom();
-      break;}
+    { return _AAtomicdomain.getNAtom(); }
   case 'P':
-    { return _PAtomicdomain.getNAtom();
-      break;}
+    { return _PAtomicdomain.getNAtom(); }
   }
 
   // EJF dummy return to avoid warnings
@@ -729,8 +727,7 @@ vector<vector<double> > GibbsSampler::atomicProposal2Matrix(char atomic_domain_l
 	chCol = getCol('A',bin);
 	newMatrix[chRow][chCol] += iter->second;
       }
-      return newMatrix;
-      break;} // end of case 'A'
+      return newMatrix; } // end of case 'A'
 
   case 'P':
     {
@@ -743,8 +740,7 @@ vector<vector<double> > GibbsSampler::atomicProposal2Matrix(char atomic_domain_l
 	chCol = getCol('P',bin);
 	newMatrix[chRow][chCol] += iter->second;
       }
-      return newMatrix;
-      break;} // end of case 'P'
+      return newMatrix; } // end of case 'P'
 
   } // end of switch 
 
@@ -784,8 +780,7 @@ vector<vector<double> > GibbsSampler::atomicProposal2FullMatrix(char atomic_doma
 	chCol = getCol('A',bin);
 	FullnewMatrix[chRow][chCol] += iter->second;
       }
-      return FullnewMatrix;
-      break;} // end of case 'A'
+      return FullnewMatrix; } // end of case 'A'
 
   case 'P':
     {
@@ -809,8 +804,7 @@ vector<vector<double> > GibbsSampler::atomicProposal2FullMatrix(char atomic_doma
 	chCol = getCol('P',bin);
 	FullnewMatrix[chRow][chCol] += iter->second;
       }
-      return FullnewMatrix;
-      break;} // end of case 'P'
+      return FullnewMatrix; } // end of case 'P'
 
   } // end of switch 
 
@@ -1255,13 +1249,11 @@ bool GibbsSampler::death(char the_matrix_label,
 	  { 
 	    _AAtomicdomain.rejectProposal(false);
  	    return false;
-	    break;
       }
       case 'P':
 	  { 
 	    _PAtomicdomain.rejectProposal(false);
 	    return false;
-	    break;
 	  }
      } // end of switch-block
 	  
@@ -1273,13 +1265,11 @@ bool GibbsSampler::death(char the_matrix_label,
           _AAtomicdomain.acceptProposal(false); 
 	      update_sysChi2(delLLnew);  // update system Chi2
 	      return true;
-          break;
 	   }
       case 'P':
 	  {   _PAtomicdomain.acceptProposal(false);  
 	      update_sysChi2(delLLnew);  // update system Chi2
 	      return true;
-          break;
 	   }
       } // end of switch-block
     } // else of if-block for M-H sampling
@@ -1376,14 +1366,12 @@ bool GibbsSampler::birth(char the_matrix_label,
 	   _AAtomicdomain.acceptProposal(false);
 	   update_sysChi2(delLLnew);  // update system Chi2
 	   return true;
-	   break;
 	   }
     case 'P':
       { 
 	   _PAtomicdomain.acceptProposal(false);
 	   update_sysChi2(delLLnew);  // update system Chi2
 	   return true;
-	   break;
 	   }
     }
 
@@ -1546,13 +1534,11 @@ bool GibbsSampler::move(char the_matrix_label,
 	  { 
 	  _AAtomicdomain.rejectProposal(false);
 	  return false;
-	  break;
 	  }
       case 'P':
 	  {
 	  _PAtomicdomain.rejectProposal(false);
 	  return false;
-	  break;
 	  }
      } // end of switch-block
     } else { 
@@ -1562,14 +1548,12 @@ bool GibbsSampler::move(char the_matrix_label,
 	   _AAtomicdomain.acceptProposal(false); 
 	   update_sysChi2(delLLnew);  // update system Chi2
 	   return true;
-	   break;
 	  }
       case 'P':
 	  {           
 	   _PAtomicdomain.acceptProposal(false); 
 	   update_sysChi2(delLLnew);  // update system Chi2
 	   return true;
-	   break;
 	  }
      } // end of switch-block       
     }  
@@ -1932,11 +1916,11 @@ bool GibbsSampler::exchange(char the_matrix_label,
       case 'A':
 	{ _AAtomicdomain.rejectProposal(false);
 	  return false;
-	  break;}
+	}
       case 'P':
 	{ _PAtomicdomain.rejectProposal(false);
 	  return false;
-	  break;}
+	}
       } // end of switch-block
     } else {
  
@@ -1946,14 +1930,12 @@ bool GibbsSampler::exchange(char the_matrix_label,
       _AAtomicdomain.acceptProposal(false); 
 	  update_sysChi2(delLLnew);  // update system Chi2
 	  return true;
-          break;
         }
       case 'P':
 	{           
         _PAtomicdomain.acceptProposal(false); 
 	   update_sysChi2(delLLnew);  // update system Chi2
 	   return true;
-          break;
         }
       } // end of switch-block       
     }  
