@@ -38,15 +38,11 @@ Rcpp::List cogapsSeq(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame,
     //---------------------
     // ===========================================================================
     // Part 1) Initialization:
-    // In this section, we read in the system parameters from the paremter file
-    // parameter.txt, and matrices D and S from datafile.txt.
-    // Then we initialize A and P in both their atomic domains and
+    // We initialize A and P in both their atomic domains and
     // matrix forms.
     // ===========================================================================
 
-    //---------------------------------------------
-    //CK CODE FOR CHANGING R VARIABLES OF THE CONFIG FILE INTO C VARIABLES
-    //THIS REPLACES COGAPS_PROGAM_OPTIONS
+    // Convert ConfigNums into individual variables
     string temp;
     double tempNumInput;
     tempNumInput = (ConfigNums[1]);
@@ -80,6 +76,8 @@ Rcpp::List cogapsSeq(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame,
     //max atom mass in A domain
     tempNumInput = (ConfigNums[9]);
     double max_gibbsmass_paraP = tempNumInput;
+
+    // Convert Config into individual variables
     //max atom mass in P domain
     //Lambda Scale Factors removed and made to be constant. Can be hard coded from GibbsSampler.cpp
     temp = Rcpp::as<string>(Config[1]);
