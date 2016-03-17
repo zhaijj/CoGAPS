@@ -76,44 +76,23 @@ Rcpp::List cogapsSeq(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame,
     //max atom mass in A domain
     tempNumInput = (ConfigNums[9]);
     double max_gibbsmass_paraP = tempNumInput;
+    tempNumInput = (ConfigNums[10]); //The number of snapshots saved during the Sampling (nSample/numSnapshots) increments
+    int numSnapshots = tempNumInput;
 
     // Convert Config into individual variables
     //max atom mass in P domain
     //Lambda Scale Factors removed and made to be constant. Can be hard coded from GibbsSampler.cpp
     temp = Rcpp::as<string>(Config[1]);
-    bool Q_output_atomic;
-
-    if (temp == "TRUE" || temp == "true") {
-        Q_output_atomic = true;    // whether to output the atomic space info to a file specified by simulation ID
-
-    } else {
-        Q_output_atomic = false;
-    }
-
+    // whether to output the atomic space info to a file specified by simulation ID
+    bool Q_output_atomic = (boost::to_upper_copy(temp) == "TRUE");
     temp = Rcpp::as<string>(Config[2]);
-    bool fixBinProbs;
-
-    if (temp == "TRUE" || temp == "true") {
-        fixBinProbs = true;    // whether we are allowing variable bin sizes.
-
-    } else {
-        fixBinProbs = false;
-    }
-
+    // whether we are allowing variable bin sizes.
+    bool fixBinProbs = (boost::to_upper_copy(temp) == "TRUE");
     temp = Rcpp::as<string>(Config[3]); //The Domain to allow variable bin sizes for (A, P, Both or Neither)
     string fixedDomainStr = temp;
     temp = Rcpp::as<string>(Config[4]); //Whether or not to run snapshots
-    bool SampleSnapshots;
+    bool SampleSnapshots (boost::to_upper_copy(temp) == "TRUE");
 
-    if (temp == "TRUE" || temp == "true") {
-        SampleSnapshots = true;
-
-    } else {
-        SampleSnapshots = false;
-    }
-
-    tempNumInput = (ConfigNums[10]); //The number of snapshots saved during the Sampling (nSample/numSnapshots) increments
-    int numSnapshots = tempNumInput;
     //Code to make the D and S matrices read from R into C++ vectors to make into Elana's Matrix Objects in Matrix.cpp
     //Now also allows for variable bin sizes to be created
     vector<vector<double> > DVector;
