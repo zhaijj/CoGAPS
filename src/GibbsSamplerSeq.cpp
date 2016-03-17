@@ -11,4 +11,5 @@ GibbsSamplerSeq::GibbsSamplerSeq(unsigned long nEquil, unsigned long nSample, un
     : GibbsSampler(nEquil, nSample, nFactor,
                    alphaA, alphaP, nMaxA, nMaxP, nIterA, nIterP, max_gibbsmass_paraA,
                    max_gibbsmass_paraP, atomicSize,
-                   label_A, label_P, label_D, label_S, DVector, SVector, simulation_id);
+                   label_A, label_P, label_D, label_S, DVector, SVector, simulation_id) {
+}
