@@ -152,10 +152,9 @@ Rcpp::List cogapsSeq(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame,
                               atomicSize,
                               label_A, label_P, label_D, label_S,
                               DVector, SVector, simulation_id);
-    // ---------------------------------------------------------------------------
-    // Based on the information of D, construct and initialize for A and P both
-    // the matrices and atomic spaces.
+
     GibbsSamp.init_AMatrix_and_PMatrix(); // initialize A and P matrices
+
     //This Section now is to handle the many possibilities for Variable Bin Sizes (Priors)
     //A for variable A bins, P for variable P Bins, B for both and N for regular uniform bin sizes
     char fixedDomain = fixedDomainStr[0];
