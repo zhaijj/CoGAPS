@@ -24,6 +24,6 @@ class GibbsSamplerSeq : public GibbsSampler {
                     vector<vector<double> > &DVector, vector<vector<double> > &SVector,
                     const string &simulation_id);
 
-    ~GibbsSamplerMap() {};
+    ~GibbsSamplerSeq() {};
 };
 #endif
