@@ -13,7 +13,7 @@
 #include "Matrix.h"  // for incorporating a Matrix class
 #include "AtomicSupport.h"  // for incorporating an Atomic class
 #include "GAPSNorm.h"  // for incorporating calculation of statistics in cogaps.
-#include "GibbsSampler.h" // for incorporating the GibbsSampler which
+#include "GibbsSamplerSeq.h" // for incorporating the GibbsSampler which
 // does all the atomic space to matrix conversion
 // and sampling actions.
 #include <Rcpp.h>
