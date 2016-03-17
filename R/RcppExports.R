@@ -13,6 +13,10 @@ cogaps <- function(DFrame, SFrame, ABinsFrame, PBinsFrame, Config, ConfigNums) {
     .Call('CoGAPS_cogaps', PACKAGE = 'CoGAPS', DFrame, SFrame, ABinsFrame, PBinsFrame, Config, ConfigNums)
 }
 
+cogapsSeq <- function(DFrame, SFrame, ABinsFrame, PBinsFrame, Config, ConfigNums) {
+    .Call('CoGAPS_cogapsSeq', PACKAGE = 'CoGAPS', DFrame, SFrame, ABinsFrame, PBinsFrame, Config, ConfigNums)
+}
+
 cogapsTest <- function(DFrame, SFrame, ABinsFrame, PBinsFrame, Config, ConfigNums) {
     .Call('CoGAPS_cogapsTest', PACKAGE = 'CoGAPS', DFrame, SFrame, ABinsFrame, PBinsFrame, Config, ConfigNums)
 }
