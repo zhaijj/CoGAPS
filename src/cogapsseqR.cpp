@@ -135,7 +135,6 @@ Rcpp::List cogapsSeq(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame,
         }
     }
 
-    //--------------------END CREATING D and S C++ VECTORS
     // Parameters or structures to be calculated or constructed:
     unsigned long nIterA = 10;    // initial inner loop iterations for A
     unsigned long nIterP = 10;    // initial inner loop iterations for P
@@ -144,12 +143,10 @@ Rcpp::List cogapsSeq(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame,
     char label_P = 'P';  // label for matrix P
     char label_D = 'D';  // label for matrix D
     char label_S = 'S';// label for matrix S
-    // ---------------------------------------------------------------------------
+
     // Initialize the GibbsSampler.
-    //R Version
-    //Now with Variable Bin capability for priors (Fixed Bins)
-    GibbsSamplerSeq GibbsSamp(nEquil, nSample, nFactor, // construct GibbsSampler and
-                              alphaA, alphaP, nMaxA, nMaxP, // Read in D and S matrices
+    GibbsSamplerSeq GibbsSamp(nEquil, nSample, nFactor,
+                              alphaA, alphaP, nMaxA, nMaxP,
                               nIterA, nIterP,
                               max_gibbsmass_paraA, max_gibbsmass_paraP,
                               atomicSize,
