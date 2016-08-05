@@ -25,3 +25,6 @@ update_remotes.sh
 
 # ignore profiler log
 inst/*.log
+
+# ignore profiler gif
+inst/*.gif
