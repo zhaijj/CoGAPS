@@ -26,7 +26,7 @@
 #include <Rcpp.h>
 // ------------------------------------------------------
 // run profiler
-#include <google/profiler.h>
+#include <gperftools/profiler.h>
 
 //namespace bpo = boost::program_options;
 using namespace std;
