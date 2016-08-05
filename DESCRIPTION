@@ -21,9 +21,6 @@ Imports:
     methods,
     stats,
     utils
-Suggests: 
-    testthat,
-    lintr
 LinkingTo: Rcpp, BH
 License: GPL (==2)
 biocViews: GeneExpression, Transcription, GeneSetEnrichment,
