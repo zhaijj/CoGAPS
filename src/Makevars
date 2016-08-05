@@ -1,1 +1,3 @@
-PKG_LBGS=-llibprofiler
+#CXXFLAGS=-g -fvar-tracking-assignments
+#LDFLAGS=-lprofiler -lunwind
+PKG_LIBS = `$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"` $(LAPACK_LIBS) -lprofiler $(BLAS_LIBS) $(FLIBS)
