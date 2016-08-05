@@ -25,6 +25,8 @@
 // and sampling actions.
 #include <Rcpp.h>
 // ------------------------------------------------------
+// run profiler
+#include <google/profiler.h>
 
 //namespace bpo = boost::program_options;
 using namespace std;
@@ -36,6 +38,7 @@ boost::mt19937 rng(43);
 // [[Rcpp::export]]
 Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFrame ABinsFrame,
                   Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config, Rcpp::NumericVector ConfigNums, int seed=-1) {
+    ProfilerStart("/Users/jacobcvt12/Code/CoGAPS2/inst/myprofile.log"); 
     // ===========================================================================
     // Initialization of the random number generator.
     // Different seeding methods:
@@ -496,6 +499,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
 
     //Code for transferring Snapshots in R
     int numSnaps = numSnapshots; //Arbitrary to keep convention
+    ProfilerStop();
 
     if (SampleSnapshots == true) {
         Rcpp::List ASnapR(numSnaps);
