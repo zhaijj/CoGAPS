@@ -1,4 +1,4 @@
-devtools::load_all()
+devtools::load_all(recompile=TRUE)
 data(SimpSim)
 nIter <- 5000
 results <- gapsRun(SimpSim.D, SimpSim.S, nFactor=3, 
