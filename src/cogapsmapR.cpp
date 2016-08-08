@@ -24,19 +24,17 @@
 // does all the atomic space to matrix conversion
 // and sampling actions.
 #include "GibbsSamplerMap.h"
-#include <Rcpp.h>
+#include <RcppArmadillo.h>
 // ------------------------------------------------------
 
 using namespace std;
 using namespace gaps;
 using std::vector;
 
-boost::mt19937 rng2(43);
-
-
 // [[Rcpp::export]]
 Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFrame FixedPatt,
-                     Rcpp::DataFrame ABinsFrame, Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config, Rcpp::NumericVector ConfigNums) {
+                     Rcpp::DataFrame ABinsFrame, Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config, Rcpp::NumericVector ConfigNums, int seed=-1,
+                     bool messages=false) {
     // ===========================================================================
     // Initialization of the random number generator.
     // Different seeding methods:
@@ -46,7 +44,11 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
     //boost::random::seed_seq seq(ve);
     //rng.seed(seq);
     // --- seeded with time
-    rng.seed(static_cast<boost::uint32_t>(std::time(0)));
+    if (seed <= 0) {
+        rng.seed(static_cast<boost::uint32_t>(std::time(0)));
+    } else {
+        rng.seed(static_cast<boost::uint32_t>(seed));
+    }
     //---------------------
     // ===========================================================================
     // Part 1) Initialization:
@@ -210,8 +212,10 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
     }
 
     if (fixBinProbs) {
-        Rcpp::Rcout << "Running CoGAPS Map with fixed bin probabilities with fixed domain ";
-        Rcpp::Rcout << fixedDomain << endl;
+        if (messages) {
+            Rcpp::Rcout << "Running CoGAPS Map with fixed bin probabilities with fixed domain ";
+            Rcpp::Rcout << fixedDomain << endl;
+        }
 
         if (fixedDomain == 'A') {
             numC = ABinsFrame.size();
@@ -313,10 +317,12 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
         outCount++;
 
         if (ext_iter % numOutputs == 0) {
-            Rcpp::Rcout << "Equil:" << ext_iter << " of " << nEquil <<
-                        ", Atoms:" << tempAtomA << "("
-                        << tempAtomP << ")" <<
-                        "  Chi2 = " << tempChiSq << endl;
+            if (messages) {
+                Rcpp::Rcout << "Equil:" << ext_iter << " of " << nEquil <<
+                            ", Atoms:" << tempAtomA << "("
+                            << tempAtomP << ")" <<
+                            "  Chi2 = " << tempChiSq << endl;
+            }
         }
 
         // -------------------------------------------
@@ -394,15 +400,17 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
 
         if (i % numOutputs == 0) {
             //----------------------------------
-            Rcpp::Rcout << "Samp: " << i << " of " << nSample <<
-                        ", Atoms:" << tempAtomA << "("
-                        << tempAtomP << ")" <<
-                        // " ,chi2 = " << chi2 <<
-                        "  Chi2 = " << tempChiSq << endl;
+            if (messages) {
+                Rcpp::Rcout << "Samp: " << i << " of " << nSample <<
+                            ", Atoms:" << tempAtomA << "("
+                            << tempAtomP << ")" <<
+                            // " ,chi2 = " << chi2 <<
+                            "  Chi2 = " << tempChiSq << endl;
 
-            if (i == nSample) {
-                chi2 = 2.*GibbsSampMap.cal_logLikelihood();
-                Rcpp::Rcout << " *** Check value of final chi2: " << chi2 << " **** " << endl;
+                if (i == nSample) {
+                    chi2 = 2.*GibbsSampMap.cal_logLikelihood();
+                    Rcpp::Rcout << " *** Check value of final chi2: " << chi2 << " **** " << endl;
+                }
             }
         }
 
@@ -475,34 +483,28 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
     int numSnaps = numSnapshots; //Arbitrary to keep convention
 
     if (SampleSnapshots == true) {
-        Rcpp::List ASnapR(numSnaps);
-        Rcpp::List PSnapR(numSnaps);
         numRow = AMeanVector.size();
         numCol = AMeanVector[0].size() ;
-        Rcpp::NumericMatrix tempASnapMatrix(numRow, numCol);
+        arma::cube ASnapR(numRow, numCol, numSnaps);
 
         for (int k = 0; k < numSnaps; k++) {
             for (int i = 0; i < numRow; i++) {
                 for (int j = 0; j < numCol; j++) {
-                    tempASnapMatrix(i, j) = ASnap[k][i][j] ;
+                    ASnapR(i, j, k) = ASnap[k][i][j];
                 }
             }
-
-            ASnapR[k] = (tempASnapMatrix);
         }
 
         numRow = PMeanVector.size();
         numCol = PMeanVector[0].size() ;
-        Rcpp::NumericMatrix tempPSnapMatrix(numRow, numCol);
+        arma::cube PSnapR(numRow, numCol, numSnaps);
 
         for (int k = 0; k < numSnaps; k++) {
             for (int i = 0; i < numRow; i++) {
                 for (int j = 0; j < numCol; j++) {
-                    tempPSnapMatrix(i, j) = PSnap[k][i][j] ;
+                    PSnapR(i, j, k) = PSnap[k][i][j];
                 }
             }
-
-            PSnapR[k] = (tempPSnapMatrix);
         }
 
         Rcpp::List fileContainer =  Rcpp::List::create(Rcpp::Named("Amean") = AMeanMatrix,

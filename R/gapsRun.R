@@ -47,6 +47,8 @@
 #'@param alphaP sparsity parameter for P domain
 #'@param nMaxP PRESENTLY UNUSED, future = limit number of atoms
 #'@param max_gibbmass_paraP limit truncated normal to max size
+#'@param seed Set seed for reproducibility. Positive values provide initial seed, negative values just use the time.
+#'@param messages Display progress messages
 #'@export
 
 #--CHANGES 1/20/15--
@@ -58,7 +60,8 @@ gapsRun <- function(D, S, ABins = data.frame(), PBins = data.frame(),
                     fixedDomain = "N", sampleSnapshots = TRUE,
                     numSnapshots = 100, alphaA = 0.01,
                     nMaxA = 100000, max_gibbmass_paraA = 100.0,
-                    alphaP = 0.01, nMaxP = 100000, max_gibbmass_paraP = 100.0)
+                    alphaP = 0.01, nMaxP = 100000, max_gibbmass_paraP = 100.0,
+                    seed=-1, messages=TRUE)
 {
   #Begin data type error checking code
   charDataErrors = c(!is.character(simulation_id), !is.character(fixedDomain))
@@ -189,7 +192,7 @@ gapsRun <- function(D, S, ABins = data.frame(), PBins = data.frame(),
   }
 
   # call to C++ Rcpp code
-  cogapResult = cogaps(D, S, ABins, PBins, Config, ConfigNums);
+  cogapResult = cogaps(D, S, ABins, PBins, Config, ConfigNums, seed, messages);
 
   # convert returned files to matrices to simplify visualization and processing
   cogapResult$Amean = as.matrix(cogapResult$Amean);

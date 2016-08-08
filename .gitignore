@@ -6,6 +6,7 @@
 *.so
 *.o*
 *.sw?
+*.dll
 
 # ignore R data
 *.RDS
@@ -15,8 +16,10 @@
 
 # ignore OS X files
 *.DS_Store
+.Rproj.user
+
+# ignore Rstudio files
+CoGAPS.Rproj
 
 # Bioconductor files (used for setting up remotes for `git svn`)
 update_remotes.sh
-.Rproj.user
-*.Rproj
