@@ -422,6 +422,10 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
         nPSamp[outCount] = tempAtomP;
         outCount++;
 
+        // do stuff here!
+        vector <vector <vector <double> > > NormedMats = GibbsSamp.getNormedMatrices();
+        
+
         if (i % numOutputs == 0) {
             if (messages) {
                 Rcpp::Rcout << "Samp: " << i << " of " << nSample <<
