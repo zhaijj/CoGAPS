@@ -422,10 +422,6 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
         nPSamp[outCount] = tempAtomP;
         outCount++;
 
-        // do stuff here!
-        vector <vector <vector <double> > > NormedMats = GibbsSamp.getNormedMatrices();
-        
-
         if (i % numOutputs == 0) {
             if (messages) {
                 Rcpp::Rcout << "Samp: " << i << " of " << nSample <<
@@ -464,6 +460,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
     vector<vector <double> > PStdVector;
     GibbsSamp.compute_statistics(statindx,
                                  AMeanVector, AStdVector, PMeanVector, PStdVector);          // compute statistics like mean and s.d.
+    // do stuff here ... maybe this should actually be part of compute_statistics tbh
     //CODE FOR CONVERTING ALL THE VECTORS FOR THE DATAFILES INTO NUMERIC VECTORS OR LISTS
     int numRow = AMeanVector.size();
     int numCol = AMeanVector[0].size() ;
