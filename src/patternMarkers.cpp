@@ -49,7 +49,7 @@ vector < vector < double > > NumericMat2Vecs(NumericMatrix X){
   }
 
   for (int ii=0; ii < nrow; ii++){
-    Rcpp::NumericVector tmp = X[ii];
+    Rcpp::NumericVector tmp = X(ii, _);
     for (int jj=0; jj < ncol; jj++){
       double tmp_element = tmp[jj];
       out[ii][jj] = tmp_element;
@@ -87,7 +87,7 @@ vector < vector <std::string> > listOfStringLists2Vecs(List X){
 double get_max(vector<double> X){
   double max_val = -std::numeric_limits<double>::infinity();
   for (int ii=0; ii < X.size(); ii++){
-    if (max_val > X[ii]){ max_val = X[ii]; }
+    if (X[ii] > max_val){ max_val = X[ii]; }
   }
  return max_val;
 }
@@ -157,78 +157,94 @@ int which_min(vector<double>  x){
   }
   return idx;
 }
-// // [[Rcpp::export()]]
-// List patternMarkersC(NumericMatrix A, NumericMatrix P){
-//   // get scaling factors for A matrix
-//   NumericVector p_scales(P.nrow());
-//   for (int ii=0; ii < P.nrow(); ii++){
-//     p_scales[ii] = get_max(P(ii, _));
-//   }
-//   // scale A matrix, assuming P matrix is not scaled
-//   for (int ii=0; ii < A.ncol(); ii++){
-//     for (int jj=0; jj < A.nrow(); jj++){
-//       A(ii, jj) = A(ii, jj) * p_scales[ii];
-//     }
-//   }
-//   // get scaled A matrix
-//   NumericMatrix Arowmax(A.nrow(), A.ncol());
-//   for (int ii=0; ii < A.nrow(); ii++){
-//     for (int jj=0; jj < A.ncol(); jj++){
-//       Arowmax[ii, jj] = A[ii, jj]/max(A(ii, _));
-//     }
-//   }
-//   // get maxes
-//   NumericVector pmax(A.nrow());
-//   for(int ii=0; ii < A.nrow(); ii++){
-//     pmax[ii] = get_max(A(ii, _));
-//   }
-//   // this is equivalent to setting lp = NA
-//   NumericMatrix sstat(A.nrow(), A.ncol());
-//   sstat.attr("dimnames") = A.attr("dimnames");
-//   NumericMatrix ssranks(A.nrow(), A.ncol());
-//   ssranks.attr("dimnames") = A.attr("dimnames");
-//   CharacterMatrix ssgenes(A.nrow(), A.ncol());
 
-//   for (int ii=0; ii < A.ncol(); ii++){
-//     NumericVector lp(A.ncol());
-//     lp[ii] = 1;
-//     for (int jj=0; jj < A.nrow(); jj++){
-//       NumericVector vv = vectorDiff(A(jj, _), lp);
-//       sstat[jj, ii] = sqrt(get_dot(vv, vv));
-//     }
-//     NumericVector tmp_sstat = sstat(_, ii);
-//     std::sort(tmp_sstat.begin(), tmp_sstat.end());
+vector <int> idx_sort(vector <double> x){
+  vector <int> y(x.size());
+  std::size_t n(0);
+  std::generate(std::begin(y), std::end(y), [&]{ return n++; });
+  std::sort(std::begin(y), std::end(y), [&](int i1, int i2){ return x[i1] < x[i2]; });
+  return y;
+}
 
-//     int counter = 0;
-//     for (int jj=0; jj < tmp_sstat.size(); jj++){
-//       for (int xx=0; xx < ssranks.nrow(); xx++){
-//         ssranks[tmp_sstat[xx], ii] = counter;
-//         counter += 1;
-//       }
-//     }
-//     // how do we propogate rownames in cogaps? doesn't impact writing this yet ...
-//     ssgenes(_, ii) = tmp_sstat.attr("names");
-//   } // end for loop over number of patterns
+// [[Rcpp::export()]]
+List patternMarkersC(NumericMatrix A, NumericMatrix P){
+  // get scaling factors for A matrix
+  vector < vector < double > > A_mat = NumericMat2Vecs(A);
+  vector < vector < double > > P_mat = NumericMat2Vecs(P);
 
-//   // below is equivalent to patternMarkers' unique option
-//   NumericVector pIndx(ssranks.nrow());
-//   for (int ii=0; ii < ssranks.nrow(); ii++){
-//     pIndx[ii] = which_min(ssranks(ii, _));
-//   }
+  vector<double> p_scales(P_mat.size());
+  for (int ii=0; ii < P_mat.size(); ii++){
+    p_scales[ii] = get_max(P_mat[ii]);
+  }
+  // scale A matrix, assuming P matrix is not scaled
+  for (int ii=0; ii < A_mat[0].size(); ii++){
+    for (int jj=0; jj < A_mat.size(); jj++){
+      A_mat[ii][jj] = A_mat[ii][jj] * p_scales[ii];
+    }
+  }
+  // get scaled A matrix
+  vector < vector < double > >  Arowmax(A_mat.size(), vector <double>(A_mat[0].size()));
+  for (int ii=0; ii < A_mat.size(); ii++){
+    for (int jj=0; jj < A_mat[0].size(); jj++){
+      Arowmax[ii][jj] = A_mat[ii][jj]/get_max(A_mat[ii]);
+    }
+  }
+  // get maxes
+  vector<double>  pmax(A_mat.size());
+  for(int ii=0; ii < A_mat.size(); ii++){
+    pmax[ii] = get_max(A_mat[ii]);
+  }
+  printf ("set pmaxes\n");
+  // this is equivalent to setting lp = NA
+  vector <vector <double> > sstat (A_mat.size(), vector <double> (A_mat[0].size()));
+  // sstat.attr("dimnames") = A.attr("dimnames");
+  vector <vector <double > > ssranks (A_mat.size(), vector <double> (A_mat[0].size()));
+  // ssranks.attr("dimnames") = A.attr("dimnames");
+  vector <vector <std::string > >  ssgenes (A_mat.size(), vector < std::string >(A_mat[0].size()));
 
-//   NumericVector pIndx_unique = clone(pIndx);
-//   std::unique(pIndx_unique.begin(), pIndx_unique.end());
-//   std::sort(pIndx_unique.begin(), pIndx_unique.end());
-//   List gBYp;
-//   for (int ii=0; ii < pIndx_unique.size(); ii++){
-//     gBYp.push_back(pIndx[ pIndx == pIndx_unique[ii] ]);
-//   }
+  for (int ii=0; ii < A_mat[0].size(); ii++){
+    vector <double> lp(A_mat[0].size(), 0);
+    lp[ii] = 1;
+    for (int jj=0; jj < A_mat.size(); jj++){
+      vector <double> tmp_A = A_mat[jj];
+      vector <double> vv = vectorDiff(tmp_A, lp);
+      sstat[jj][ii] = sqrt(get_dot(vv, vv));
+      printf ("SSTAT %d, %d: %f\n", jj, ii, sstat[jj][ii]);
+    }
+    vector <double> tmp_sstat = sstat[ii];
+    vector <int> tmp_sstat_idx = idx_sort(tmp_sstat);
 
-//   List ssgenes_th;
-//   for (int ii=0; ii < A.ncol(); ii++){
-//     CharacterVector ssgenes_tmp = ssgenes(_, ii);
-//     ssgenes_th.push_back(ssgenes_tmp[which_in_lists(ssgenes_tmp, gBYp[ii])]);
-//   }
-//   return ssgenes_th;
-// }
+    int counter = 0;
+    for (int jj=0; jj < tmp_sstat_idx.size(); jj++){
+      ssranks[tmp_sstat_idx[jj]][ii] = counter;
+      printf("Ranks %d, %d: %d\n", tmp_sstat_idx[jj], ii, counter);
+      counter += 1;
+    }
+    // how do we propogate rownames in cogaps? doesn't impact writing this yet ...
+    //ssgenes(_, ii) = tmp_sstat.attr("names");
+  } // end for loop over number of patterns
+
+  // // below is equivalent to patternMarkers' unique option
+  // NumericVector pIndx(ssranks.nrow());
+  // for (int ii=0; ii < ssranks.nrow(); ii++){
+  //   pIndx[ii] = which_min(ssranks(ii, _));
+  // }
+
+  // NumericVector pIndx_unique = clone(pIndx);
+  // std::unique(pIndx_unique.begin(), pIndx_unique.end());
+  // std::sort(pIndx_unique.begin(), pIndx_unique.end());
+  // List gBYp;
+  // for (int ii=0; ii < pIndx_unique.size(); ii++){
+  //   gBYp.push_back(pIndx[ pIndx == pIndx_unique[ii] ]);
+  // }
+
+  // List ssgenes_th;
+  // for (int ii=0; ii < A.ncol(); ii++){
+  //   CharacterVector ssgenes_tmp = ssgenes(_, ii);
+  //   ssgenes_th.push_back(ssgenes_tmp[which_in_lists(ssgenes_tmp, gBYp[ii])]);
+  // }
+  // return ssgenes_th;
+  List out(4);
+  return out;
+}
 
