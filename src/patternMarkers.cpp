@@ -163,10 +163,10 @@ vector <int> idx_sort(vector <double> x){
   for (int ii=0; ii < x.size(); ii++){
     y[ii] = ii;
   }
+  int tmp_y = -1;
   for (int ii=0; ii < x.size(); ii++){
     for(int jj=ii+1; jj < x.size(); jj++){
       if (x[ y[ii] ] > x[ y[jj] ]){
-        int tmp_y;
         tmp_y = y[ii];
         y[ii] = y[jj];
         y[jj] = tmp_y;
