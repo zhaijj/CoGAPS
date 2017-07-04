@@ -160,9 +160,19 @@ int which_min(vector<double>  x){
 
 vector <int> idx_sort(vector <double> x){
   vector <int> y(x.size());
-  std::size_t n(0);
-  std::generate(std::begin(y), std::end(y), [&]{ return n++; });
-  std::sort(std::begin(y), std::end(y), [&](int i1, int i2){ return x[i1] < x[i2]; });
+  for (int ii=0; ii < x.size(); ii++){
+    y[ii] = ii;
+  }
+  for (int ii=0; ii < x.size(); ii++){
+    for(int jj=ii+1; jj < x.size(); jj++){
+      if (x[ y[ii] ] > x[ y[jj] ]){
+        int tmp_y;
+        tmp_y = y[ii];
+        y[ii] = y[jj];
+        y[jj] = tmp_y;
+      }
+    }
+  }
   return y;
 }
 
@@ -212,7 +222,8 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
       printf ("SSTAT %d, %d: %f\n", jj, ii, sstat[jj][ii]);
     }
     vector <double> tmp_sstat = sstat[ii];
-    vector <int> tmp_sstat_idx = idx_sort(tmp_sstat);
+    vector <int> tmp_sstat_idx(tmp_sstat.size());
+    tmp_sstat_idx = idx_sort(tmp_sstat);
 
     int counter = 0;
     for (int jj=0; jj < tmp_sstat_idx.size(); jj++){
