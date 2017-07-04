@@ -196,7 +196,7 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
   vector < vector < double > >  Arowmax(A_mat.size(), vector <double>(A_mat[0].size()));
   for (int ii=0; ii < A_mat.size(); ii++){
     for (int jj=0; jj < A_mat[0].size(); jj++){
-      Arowmax[ii][jj] = A_mat[ii][jj]/get_max(A_mat[ii]);
+      Arowmax[ii][jj] = A_mat[ii][jj]/get_max(A_mat[ii]); // shit there's a call to t() to deal with
     }
   }
   // get maxes
@@ -211,12 +211,13 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
   vector <vector <double > > ssranks (A_mat.size(), vector <double> (A_mat[0].size()));
   // ssranks.attr("dimnames") = A.attr("dimnames");
   vector <vector <std::string > >  ssgenes (A_mat.size(), vector < std::string >(A_mat[0].size()));
-
-  for (int ii=0; ii < A_mat[0].size(); ii++){
+  // this is equivalent to iterating over rows of t(Arowmax)
+  int counter = 0;
+  for (int ii=0; ii < Arowmax[0].size(); ii++){ 
     vector <double> lp(A_mat[0].size(), 0);
     lp[ii] = 1;
-    for (int jj=0; jj < A_mat.size(); jj++){
-      vector <double> tmp_A = A_mat[jj];
+    for (int jj=0; jj < Arowmax.size(); jj++){
+      vector <double> tmp_A = Arowmax[jj];
       vector <double> vv = vectorDiff(tmp_A, lp);
       sstat[jj][ii] = sqrt(get_dot(vv, vv));
       printf ("SSTAT %d, %d: %f\n", jj, ii, sstat[jj][ii]);
@@ -224,8 +225,7 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
     vector <double> tmp_sstat = sstat[ii];
     vector <int> tmp_sstat_idx(tmp_sstat.size());
     tmp_sstat_idx = idx_sort(tmp_sstat);
-
-    int counter = 0;
+    counter = 0;
     for (int jj=0; jj < tmp_sstat_idx.size(); jj++){
       ssranks[tmp_sstat_idx[jj]][ii] = counter;
       printf("Ranks %d, %d: %d\n", tmp_sstat_idx[jj], ii, counter);
