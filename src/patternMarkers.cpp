@@ -59,30 +59,6 @@ vector < vector < double > > NumericMat2Vecs(NumericMatrix X){
   return out;
 }
 
-vector < std::string > listOfStrings2Vec(List X){
-  vector < std::string >  out;
-  int len = X.size();
-  out.resize(len);
-  for (int ii=0; ii < len; ii++){
-    out[ii] = as<std::string>(X[ii]);
-  }
-  return out;
-}
-
-vector < vector <std::string> > listOfStringLists2Vecs(List X){
-  vector < vector <std::string > > out;
-  int len_outer = X.size();
-  out.resize(len_outer);
-  for(int ii=0; ii < len_outer; ii++){
-    vector <std::string> tmp = X[ii];
-    int len_inner = tmp.size();
-    out[ii].resize(len_inner);
-    for (int jj=0; jj < len_inner; jj++){
-      out[ii][jj] = tmp[jj];
-    }
-  }
-  return out;
-}
 // [[Rcpp::export()]]
 double get_max(vector<double> X){
   double max_val = -std::numeric_limits<double>::infinity();
@@ -92,43 +68,6 @@ double get_max(vector<double> X){
  return max_val;
 }
 
-bool findStringInList(string gene, vector<std::string>  gene_list){
-  bool found = false;
-  for (int ii=0; ii < gene_list.size(); ii++){
-    //string gene_now = gene_list[ii];
-    if (gene == gene_list[ii]){
-      found = true;
-    }
-  }
-  return found;
-}
-// [[Rcpp::export()]]
-vector<int> which_in(string gene, vector<vector<std::string> >  listP){
-  vector < int >  inn;
-  for (int ii=0; ii < listP.size(); ii++){
-    vector <std::string> tmp_listp = listP[ii];
-    bool found = findStringInList(gene, tmp_listp);
-    if (found){
-      inn.push_back(ii);
-    }
-  }
-  return inn;
-}
-
-vector<vector<int> > which_in_lists(vector<std::string>  genes, vector<vector<std::string> > listP){
-  vector < vector < int > > inn(genes.size());
-  for(int jj=0; jj < genes.size(); jj++){
-    string gene = genes[jj];
-    for (int ii=0; ii < listP.size(); ii++){
-      vector<std::string> tmp = listP[ii];
-      bool found = findStringInList(gene, tmp);
-      if (found){
-        inn[jj].push_back(ii);
-      }
-    }
-  }
-  return inn;
-}
 // [[Rcpp::export()]]
 vector<double> vectorDiff(vector<double>  X, vector<double>  Y){
   vector < double >  out(X.size());
@@ -182,7 +121,6 @@ vector<int> subsetAndDuplicate(vector<int> p, int tmp_p){
   printf ("P size: %zd\n", p.size());
   for (int ii=0; ii < p.size(); ii++){
     if (p[ii] == tmp_p){
-      printf ("For comparing %d, push %d\n", tmp_p, ii);
       out.push_back(ii);
     } 
   }
@@ -236,7 +174,6 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
   for (int ii=0; ii < A_mat.size(); ii++){
     for (int jj=0; jj < A_mat[0].size(); jj++){
       // t(Arowmax) is needed bc apply returns pattern x genes, but genes x pattern is what is desired
-      // this is fine i believe
       Arowmax[ii][jj] = A_mat[ii][jj]/get_max(A_mat[ii]); 
     }
   }
@@ -245,16 +182,9 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
   for(int ii=0; ii < A_mat.size(); ii++){
     pmax[ii] = get_max(A_mat[ii]);
   }
-  printf ("set pmaxes\n");
   // this is equivalent to setting lp = NA
   vector <vector <double> > sstat (A_mat.size(), vector <double> (A_mat[0].size()));
-  // sstat.attr("dimnames") = A.attr("dimnames");
-  // vector <vector <double > > ssranks (A_mat.size(), vector <double> (A_mat[0].size()));
-  // // ssranks.attr("dimnames") = A.attr("dimnames");
-  // vector <vector <std::string > >  ssgenes (A_mat.size(), vector < std::string >(A_mat[0].size()));
-  // // this is equivalent to iterating over rows of t(Arowmax)
   int counter = 0;
-  printf("Arowmax dims: %zd x %zd\na", Arowmax.size(), Arowmax[0].size());
 
   vector<int> mins(Arowmax.size());
 
@@ -265,22 +195,7 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
       vector <double> tmp_A = Arowmax[jj];
       vector <double> vv = vectorDiff(tmp_A, lp);
       sstat[jj][ii] = sqrt(get_dot(vv, vv));
-      printf("sstat %d, %d: %f\n", jj, ii, sstat[jj][ii]);
-    }    
-    // vector <double> tmp_sstat = get_column(Arowmax, ii); 
-    // printf("Size of sstat column %d: %zd\n", ii, tmp_sstat.size());
-    // vector <int> tmp_sstat_idx(tmp_sstat.size());
-    // tmp_sstat_idx = idx_sort(tmp_sstat);
-    // counter = 0;
-    // for (int jj=0; jj < tmp_sstat_idx.size(); jj++){
-    //   ssranks[tmp_sstat_idx[jj]][ii] = counter;
-    //   printf("ssranks %d, %d: %d\n", tmp_sstat_idx[jj], ii, counter);
-    //   counter += 1;
-    // }
-    // how do we propogate rownames in cogaps? doesn't impact writing this yet ...
-    // let's skip gene names and only operate on ranks for now
-    // we can index into gene names at the end
-    //ssgenes(_, ii) = tmp_sstat.attr("names");
+    }
   } // end for loop over number of patterns
 
   for (int ii=0; ii < mins.size(); ii++){
@@ -289,28 +204,7 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
   }
 
   vector<int> pats = get_unique(mins);
-  printf("pats size: %zd\n", pats.size());
-
-  printf ("RANKS COMP'D\n");
-  // // below is equivalent to patternMarkers' unique option
-  // vector<int> pIndx(ssranks.size());
-  // for (int ii=0; ii < ssranks.size(); ii++){
-  //   pIndx[ii] = which_min(ssranks[ii]);
-  //   printf("pIndx %d: %d\n", ii, pIndx[ii]);
-  // }
-  // printf ("pIndx!\n");
-  // vector<int> pIndx_unique = get_unique(pIndx);
-  // printf ("pIndx unique size: %zd\n", pIndx_unique.size());
-
-  // vector <vector<int> > gBYp(pIndx_unique.size());
-  // for (int ii=0; ii < pIndx_unique.size(); ii++){
-  //   vector<int> tmp = subsetAndDuplicate(pIndx, pIndx_unique[ii]);
-  //   printf ("pIndx tmp %d size: %zd\n", ii, tmp.size());
-  //   for (int jj=0; jj < tmp.size(); jj++){
-  //     gBYp[ii].push_back(tmp[jj]);
-  //   }
-  //   printf ("pushed %d into gBYp\n", ii);
-  // }
+  // only for R debugging ... delete when integrating with CoGAPS
   List ssgenes_th;
   List dimnames = A.attr("dimnames");
   StringVector rownames = dimnames[0];
