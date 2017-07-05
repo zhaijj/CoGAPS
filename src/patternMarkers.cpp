@@ -289,6 +289,7 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
   }
 
   vector<int> pats = get_unique(mins);
+  printf("pats size: %zd\n", pats.size());
 
   printf ("RANKS COMP'D\n");
   // // below is equivalent to patternMarkers' unique option
@@ -310,25 +311,15 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
   //   }
   //   printf ("pushed %d into gBYp\n", ii);
   // }
-  printf ("making ssgenes\n");
   List ssgenes_th;
   List dimnames = A.attr("dimnames");
   StringVector rownames = dimnames[0];
   for (int ii=0; ii < pats.size(); ii++){
-    StringVector ssgenes_tmp(get_match_counts(mins, pats[ii]));
+    StringVector ssgenes_tmp;
     for (int jj=0; jj < mins.size(); jj++){
       if(mins[jj] == pats[ii]){ ssgenes_tmp.push_back(rownames[jj]); }
     }
     ssgenes_th.push_back(ssgenes_tmp);
   }
-
-  // for (int ii=0; ii < A_mat[0].size(); ii++){
-  //   StringVector ssgenes_tmp(gBYp[ii].size());
-  //   for (int jj=0; jj < gBYp[ii].size(); jj++){
-  //     int tmp = gBYp[ii][jj];
-  //     ssgenes_tmp[jj] = rownames[tmp];
-  //   }
-  //   ssgenes_th.push_back(ssgenes_tmp);
-  // }
   return ssgenes_th;
 }
