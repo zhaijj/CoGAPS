@@ -97,24 +97,23 @@ int which_min(vector<double>  x){
   return idx;
 }
 
-// [[Rcpp::export()]]
-vector <int> idx_sort(vector <double> x){
-  vector <int> y(x.size());
-  for (int ii=0; ii < x.size(); ii++){
-    y[ii] = ii;
-  }
-  int tmp_y = -1;
-  for (int ii=0; ii < x.size(); ii++){
-    for(int jj=ii+1; jj < x.size(); jj++){
-      if (x[ y[ii] ] > x[ y[jj] ]){
-        tmp_y = y[ii];
-        y[ii] = y[jj];
-        y[jj] = tmp_y;
-      }
-    }
-  }
-  return y;
-}
+// vector <int> idx_sort(vector <double> x){
+//   vector <int> y(x.size());
+//   for (int ii=0; ii < x.size(); ii++){
+//     y[ii] = ii;
+//   }
+//   int tmp_y = -1;
+//   for (int ii=0; ii < x.size(); ii++){
+//     for(int jj=ii+1; jj < x.size(); jj++){
+//       if (x[ y[ii] ] > x[ y[jj] ]){
+//         tmp_y = y[ii];
+//         y[ii] = y[jj];
+//         y[jj] = tmp_y;
+//       }
+//     }
+//   }
+//   return y;
+// }
 // [[Rcpp::export()]]
 vector<int> subsetAndDuplicate(vector<int> p, int tmp_p){
   vector<int> out;
@@ -166,9 +165,10 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
   // scale A matrix, assuming P matrix is not scaled
   for (int ii=0; ii < A_mat[0].size(); ii++){
     for (int jj=0; jj < A_mat.size(); jj++){
-      A_mat[ii][jj] = A_mat[ii][jj] * p_scales[ii];
+      A_mat[jj][ii] = A_mat[jj][ii] * p_scales[ii];
     }
   }
+
   // get scaled A matrix
   vector < vector < double > >  Arowmax(A_mat.size(), vector <double>(A_mat[0].size()));
   for (int ii=0; ii < A_mat.size(); ii++){
@@ -178,6 +178,7 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
     }
   }
   // get maxes
+
   vector<double>  pmax(A_mat.size());
   for(int ii=0; ii < A_mat.size(); ii++){
     pmax[ii] = get_max(A_mat[ii]);
@@ -205,15 +206,16 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
 
   vector<int> pats = get_unique(mins);
   // only for R debugging ... delete when integrating with CoGAPS
-  List ssgenes_th;
   List dimnames = A.attr("dimnames");
   StringVector rownames = dimnames[0];
+  List ssgenes_th(pats.size());
+
   for (int ii=0; ii < pats.size(); ii++){
     StringVector ssgenes_tmp;
     for (int jj=0; jj < mins.size(); jj++){
       if(mins[jj] == pats[ii]){ ssgenes_tmp.push_back(rownames[jj]); }
     }
-    ssgenes_th.push_back(ssgenes_tmp);
+    ssgenes_th[ii] = ssgenes_tmp;
   }
   return ssgenes_th;
 }
