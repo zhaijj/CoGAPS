@@ -59,8 +59,7 @@ vector < vector < double > > NumericMat2Vecs(NumericMatrix X){
   return out;
 }
 
-// [[Rcpp::export()]]
-double get_max(vector<double> X){
+double  GibbsSampler::get_max(vector<double> X){
   double max_val = -std::numeric_limits<double>::infinity();
   for (int ii=0; ii < X.size(); ii++){
     if (X[ii] > max_val){ max_val = X[ii]; }
@@ -68,24 +67,23 @@ double get_max(vector<double> X){
  return max_val;
 }
 
-// [[Rcpp::export()]]
-vector<double> vectorDiff(vector<double>  X, vector<double>  Y){
+vector<double>  GibbsSampler::vectorDiff(vector<double>  X, vector<double>  Y){
   vector < double >  out(X.size());
   for (int ii=0; ii < X.size(); ii++){
     out[ii] = X[ii] - Y[ii];
   }
   return out;
 }
-// [[Rcpp::export()]]
-double get_dot(vector<double>  X, vector<double>  Y){
+
+double  GibbsSampler::get_dot(vector<double>  X, vector<double>  Y){
   double sum = 0;
   for(int ii=0; ii < X.size(); ii++){
     sum += X[ii] * Y[ii];
   }
   return sum;
 }
-// [[Rcpp::export()]]
-int which_min(vector<double>  x){
+
+int  GibbsSampler::which_min(vector<double>  x){
   int idx = 0;
   double val = std::numeric_limits<double>::infinity();
   for (int ii=0; ii < x.size(); ii++){
@@ -97,25 +95,8 @@ int which_min(vector<double>  x){
   return idx;
 }
 
-// vector <int> idx_sort(vector <double> x){
-//   vector <int> y(x.size());
-//   for (int ii=0; ii < x.size(); ii++){
-//     y[ii] = ii;
-//   }
-//   int tmp_y = -1;
-//   for (int ii=0; ii < x.size(); ii++){
-//     for(int jj=ii+1; jj < x.size(); jj++){
-//       if (x[ y[ii] ] > x[ y[jj] ]){
-//         tmp_y = y[ii];
-//         y[ii] = y[jj];
-//         y[jj] = tmp_y;
-//       }
-//     }
-//   }
-//   return y;
-// }
-// [[Rcpp::export()]]
-vector<int> subsetAndDuplicate(vector<int> p, int tmp_p){
+
+vector<int>  GibbsSampler::subsetAndDuplicate(vector<int> p, int tmp_p){
   vector<int> out;
   printf ("P size: %zd\n", p.size());
   for (int ii=0; ii < p.size(); ii++){
@@ -126,7 +107,7 @@ vector<int> subsetAndDuplicate(vector<int> p, int tmp_p){
   return out;
 }
 
-vector<double> get_column(vector<vector<double> > x, int column){
+vector<double>  GibbsSampler::get_column(vector<vector<double> > x, int column){
   vector<double> out(x.size());
   for (int ii=0; ii < x.size(); ii++){
     out[ii] = x[ii][column];
@@ -134,8 +115,8 @@ vector<double> get_column(vector<vector<double> > x, int column){
   return out;
 }
 
-// [[Rcpp::export()]]
-vector<int> get_unique(vector<int> x){
+
+vector<int>  GibbsSampler::get_unique(vector<int> x){
   vector<int> a = x;
   vector<int> out;
   std::sort(a.begin(), a.end());
@@ -143,8 +124,7 @@ vector<int> get_unique(vector<int> x){
   return out;
 }
 
-// [[Rcpp::export()]]
-int get_match_counts(vector<int> x, int a){
+int  GibbsSampler::get_match_counts(vector<int> x, int a){
   int out = 0;
   for (int ii=0; ii < x.size(); ii++){
     if (x[ii] == a){ out += 1; }
@@ -152,8 +132,7 @@ int get_match_counts(vector<int> x, int a){
   return out;
 }
 
-// [[Rcpp::export()]]
-List patternMarkersC(NumericMatrix A, NumericMatrix P){
+vector<int> GibbsSampler::patternMarkersC(NumericMatrix A, NumericMatrix P){
   // get scaling factors for A matrix
   vector < vector < double > > A_mat = NumericMat2Vecs(A);
   vector < vector < double > > P_mat = NumericMat2Vecs(P);
@@ -203,19 +182,5 @@ List patternMarkersC(NumericMatrix A, NumericMatrix P){
     vector<double> tmp = sstat[ii];
     mins[ii] = which_min(tmp);
   }
-
-  vector<int> pats = get_unique(mins);
-  // only for R debugging ... delete when integrating with CoGAPS
-  List dimnames = A.attr("dimnames");
-  StringVector rownames = dimnames[0];
-  List ssgenes_th(pats.size());
-
-  for (int ii=0; ii < pats.size(); ii++){
-    StringVector ssgenes_tmp;
-    for (int jj=0; jj < mins.size(); jj++){
-      if(mins[jj] == pats[ii]){ ssgenes_tmp.push_back(rownames[jj]); }
-    }
-    ssgenes_th[ii] = ssgenes_tmp;
-  }
-  return ssgenes_th;
+  return mins;
 }

@@ -86,7 +86,8 @@ class GibbsSampler {
     vector<double> _new_mass_changed;
     vector<boost::tuple<unsigned int, unsigned int, double> > _new_matrixElemChange;
 
-
+    // PUMP matrix
+    vector<vector<int> > _pump_mat;
 
     // for computing statistics with matrices A and P
     // unsigned long _statindx_A, _statindx_P;  // counter
@@ -138,6 +139,10 @@ class GibbsSampler {
 
     unsigned int getTotNumAtoms(char matrix_label);
 
+    // for updating pump matrix
+    void pumpUp(vector<int>);
+
+    vector < vector<int> > getPumpMatrix();
 
     // Snapshot methods
     vector <vector <vector <double> > > getNormedMatrices();
