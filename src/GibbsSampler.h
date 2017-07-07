@@ -11,6 +11,7 @@
 #include "sub_func.h"
 #include "Matrix.h"
 #include "AtomicSupport.h"
+#include "PUMP.h"
 #include <limits>
 #include <cmath>
 #include <limits>
@@ -86,7 +87,7 @@ class GibbsSampler {
     vector<double> _new_mass_changed;
     vector<boost::tuple<unsigned int, unsigned int, double> > _new_matrixElemChange;
 
-    // PUMP matrix
+    // PUMP matrix for PUMP stats
     vector<vector<int> > _pump_mat;
 
     // for computing statistics with matrices A and P
@@ -111,7 +112,6 @@ class GibbsSampler {
                  const string &simulation_id);
 
     ~GibbsSampler() {};
-
 
     // *************** METHOS FOR INITIALIZATION, DISPALY, OUTPUT ***********************
     void init_AMatrix_and_PMatrix();
@@ -139,10 +139,6 @@ class GibbsSampler {
 
     unsigned int getTotNumAtoms(char matrix_label);
 
-    // for updating pump matrix
-    void pumpUp(vector<int>);
-
-    vector < vector<int> > getPumpMatrix();
 
     // Snapshot methods
     vector <vector <vector <double> > > getNormedMatrices();
@@ -155,6 +151,13 @@ class GibbsSampler {
     vector <vector <double> > createSamplePMat(map <unsigned long long, double> PDomain);
 
     double ManualCalcChiSqu(vector <vector <double> > SampleAMat, vector <vector <double> > SamplePMat);
+
+    // PUMP methods
+    void init_pump_mat();
+
+    vector<vector<int> > get_pump_mat();
+
+    void update_pump_mat(vector<int> x);
 
     // **************** METHODS FOR COMPUTING LIKELIHOOD FUNCTIONS *****************
     double cal_logLikelihood();

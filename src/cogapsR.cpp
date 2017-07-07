@@ -21,6 +21,7 @@
 #include "AtomicSupport.h"  // for incorporating an Atomic class
 #include "GAPSNorm.h"  // for incorporating calculation of statistics in cogaps.
 #include "GibbsSampler.h" // for incorporating the GibbsSampler which
+#include "PUMP.h" // PUMP methods
 // does all the atomic space to matrix conversion
 // and sampling actions.
 #include <RcppArmadillo.h>
@@ -294,6 +295,9 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
     }
 
     GibbsSamp.init_sysChi2(); // initialize the system chi2 value
+
+    GibbsSamp.init_pump_mat(); // initialize PUMP matrix
+
     // ===========================================================================
     // Part 2) Equilibration:
     // In this section, we let the system eqilibrate with nEquil outer loop
@@ -436,8 +440,12 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
             }
         }
 
+        //compute pattern assignments for this scan and save results
+        vector <vector <vector <double> > > NormedMats = GibbsSamp.getNormedMatrices();
+        vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1]);
+        GibbsSamp.update_pump_mat(pat_assigns);
+
         if (SampleSnapshots && (i % (nSample / numSnapshots) == 0)) {
-            vector <vector <vector <double> > > NormedMats = GibbsSamp.getNormedMatrices();
             ASnap.push_back(NormedMats[0]);
             PSnap.push_back(NormedMats[1]);
         }
@@ -502,6 +510,14 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
         }
     }
 
+    vector<int> mean_pattern = patternMarkers(AMeanVector, PMeanVector);
+    vector <vector<int> > pump_mat = GibbsSamp.get_pump_mat();
+    vector <double> pump_stats(pump_mat.size());
+
+    for (int ii=0; ii < mean_pattern.size(); ii++){
+      pump_stats[ii] = pump_mat[ii][mean_pattern[ii]] / (double) nSample;
+    }
+
     //Code for transferring Snapshots in R
     int numSnaps = numSnapshots; //Arbitrary to keep convention
 
@@ -534,7 +550,8 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
                                     Rcpp::Named("Asd") = AStdMatrix, Rcpp::Named("Pmean") = PMeanMatrix, Rcpp::Named("Psd") = PStdMatrix,
                                     Rcpp::Named("ASnapshots") = ASnapR, Rcpp::Named("PSnapshots") = PSnapR,
                                     Rcpp::Named("atomsAEquil") = nAEquil, Rcpp::Named("atomsASamp") = nASamp,
-                                    Rcpp::Named("atomsPEquil") = nPEquil, Rcpp::Named("atomsPSamp") = nPSamp, Rcpp::Named("chiSqValues") = chiVect);
+                                    Rcpp::Named("atomsPEquil") = nPEquil, Rcpp::Named("atomsPSamp") = nPSamp,
+                                                       Rcpp::Named("chiSqValues") = chiVect, Rcpp::Named("PumpStats") = pump_stats);
         return (fileContainer);
 
     } else {
@@ -545,7 +562,8 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
                                     Rcpp::Named("Asd") = AStdMatrix, Rcpp::Named("Pmean") = PMeanMatrix, Rcpp::Named("Psd") = PStdMatrix,
                                     Rcpp::Named("ASnapshots") = ASnapR, Rcpp::Named("PSnapshots") = PSnapR,
                                     Rcpp::Named("atomsAEquil") = nAEquil, Rcpp::Named("atomsASamp") = nASamp,
-                                    Rcpp::Named("atomsPEquil") = nPEquil, Rcpp::Named("atomsPSamp") = nPSamp, Rcpp::Named("chiSqValues") = chiVect);
+                                                       Rcpp::Named("atomsPEquil") = nPEquil, Rcpp::Named("atomsPSamp") = nPSamp, Rcpp::Named("chiSqValues") = chiVect,
+                                                       Rcpp::Named("PumpStats") = pump_stats);
         return (fileContainer);
     }
 }

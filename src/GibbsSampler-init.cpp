@@ -113,3 +113,13 @@ void GibbsSampler::init_AAtomicdomain_and_PAtomicdomain(vector<vector<double> > 
     _AAtomicdomain.FixedBins_initializeAtomic(_nBinsA, atomicSize, _alphaA, _lambdaA, _label_A, ReadBinProbsA);
     _PAtomicdomain.FixedBins_initializeAtomic(_nBinsP, atomicSize, _alphaP, _lambdaP, _label_P, ReadBinProbsP);
 }
+
+void GibbsSampler::init_pump_mat(){
+  vector<vector<int> > pump_mat(_nRow, vector<int>(_nSample));
+  for (int ii=0; ii < _nRow; ii++){
+    for (int jj=0; jj < _nSample; jj++){
+      pump_mat[ii][jj] = 0;
+    }
+  }
+  _pump_mat = pump_mat;
+}

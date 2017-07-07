@@ -14,6 +14,7 @@
 #include "AtomicSupport.h"  // for incorporating an Atomic class
 #include "GAPSNorm.h"  // for incorporating calculation of statistics in cogaps.
 #include "GibbsSampler.h" // for incorporating the GibbsSampler which
+#include "PUMP.h"
 // does all the atomic space to matrix conversion
 // and sampling actions.
 #include <RcppArmadillo.h>
@@ -24,8 +25,6 @@ using namespace std;
 using namespace gaps;
 using std::vector;
 using namespace Rcpp;
-
-boost::mt19937 rng(43);
 
 // https://github.com/Bioconductor-mirror/CoGAPS/blob/b1b986984c001bd7562c9e32e219a5095fef3a2a/src/GibbsSampler-atomic.cpp#L50
 // double ** Amatrix - convert to/from NumericMatrix?
@@ -38,28 +37,28 @@ boost::mt19937 rng(43);
 // return: partition of genes into list
 
 // for debugging from R purposes
-vector < vector < double > > NumericMat2Vecs(NumericMatrix X){
-  vector < vector < double > > out;
-  int nrow = X.nrow();
-  int ncol = X.ncol();
-  out.resize(nrow);
+// vector < vector < double > > NumericMat2Vecs(NumericMatrix X){
+//   vector < vector < double > > out;
+//   int nrow = X.nrow();
+//   int ncol = X.ncol();
+//   out.resize(nrow);
 
-  for (int ii=0; ii < nrow; ii++){
-    out[ii].resize(ncol);
-  }
+//   for (int ii=0; ii < nrow; ii++){
+//     out[ii].resize(ncol);
+//   }
 
-  for (int ii=0; ii < nrow; ii++){
-    Rcpp::NumericVector tmp = X(ii, _);
-    for (int jj=0; jj < ncol; jj++){
-      double tmp_element = tmp[jj];
-      out[ii][jj] = tmp_element;
-    }
-  }
+//   for (int ii=0; ii < nrow; ii++){
+//     Rcpp::NumericVector tmp = X(ii, _);
+//     for (int jj=0; jj < ncol; jj++){
+//       double tmp_element = tmp[jj];
+//       out[ii][jj] = tmp_element;
+//     }
+//   }
 
-  return out;
-}
+//   return out;
+// }
 
-double  GibbsSampler::get_max(vector<double> X){
+double get_max(vector<double> X){
   double max_val = -std::numeric_limits<double>::infinity();
   for (int ii=0; ii < X.size(); ii++){
     if (X[ii] > max_val){ max_val = X[ii]; }
@@ -67,7 +66,7 @@ double  GibbsSampler::get_max(vector<double> X){
  return max_val;
 }
 
-vector<double>  GibbsSampler::vectorDiff(vector<double>  X, vector<double>  Y){
+vector<double> vectorDiff(vector<double>  X, vector<double>  Y){
   vector < double >  out(X.size());
   for (int ii=0; ii < X.size(); ii++){
     out[ii] = X[ii] - Y[ii];
@@ -75,7 +74,7 @@ vector<double>  GibbsSampler::vectorDiff(vector<double>  X, vector<double>  Y){
   return out;
 }
 
-double  GibbsSampler::get_dot(vector<double>  X, vector<double>  Y){
+double get_dot(vector<double>  X, vector<double>  Y){
   double sum = 0;
   for(int ii=0; ii < X.size(); ii++){
     sum += X[ii] * Y[ii];
@@ -83,7 +82,7 @@ double  GibbsSampler::get_dot(vector<double>  X, vector<double>  Y){
   return sum;
 }
 
-int  GibbsSampler::which_min(vector<double>  x){
+int which_min(vector<double>  x){
   int idx = 0;
   double val = std::numeric_limits<double>::infinity();
   for (int ii=0; ii < x.size(); ii++){
@@ -96,7 +95,7 @@ int  GibbsSampler::which_min(vector<double>  x){
 }
 
 
-vector<int>  GibbsSampler::subsetAndDuplicate(vector<int> p, int tmp_p){
+vector<int> subsetAndDuplicate(vector<int> p, int tmp_p){
   vector<int> out;
   printf ("P size: %zd\n", p.size());
   for (int ii=0; ii < p.size(); ii++){
@@ -107,7 +106,7 @@ vector<int>  GibbsSampler::subsetAndDuplicate(vector<int> p, int tmp_p){
   return out;
 }
 
-vector<double>  GibbsSampler::get_column(vector<vector<double> > x, int column){
+vector<double> get_column(vector<vector<double> > x, int column){
   vector<double> out(x.size());
   for (int ii=0; ii < x.size(); ii++){
     out[ii] = x[ii][column];
@@ -116,7 +115,7 @@ vector<double>  GibbsSampler::get_column(vector<vector<double> > x, int column){
 }
 
 
-vector<int>  GibbsSampler::get_unique(vector<int> x){
+vector<int> get_unique(vector<int> x){
   vector<int> a = x;
   vector<int> out;
   std::sort(a.begin(), a.end());
@@ -124,7 +123,7 @@ vector<int>  GibbsSampler::get_unique(vector<int> x){
   return out;
 }
 
-int  GibbsSampler::get_match_counts(vector<int> x, int a){
+int get_match_counts(vector<int> x, int a){
   int out = 0;
   for (int ii=0; ii < x.size(); ii++){
     if (x[ii] == a){ out += 1; }
@@ -132,10 +131,11 @@ int  GibbsSampler::get_match_counts(vector<int> x, int a){
   return out;
 }
 
-vector<int> GibbsSampler::patternMarkersC(NumericMatrix A, NumericMatrix P){
+// [[Rcpp::export()]]
+vector<int> patternMarkers(vector<vector<double> > A_mat, vector<vector<double> > P_mat){
   // get scaling factors for A matrix
-  vector < vector < double > > A_mat = NumericMat2Vecs(A);
-  vector < vector < double > > P_mat = NumericMat2Vecs(P);
+  // vector < vector < double > > A_mat = NumericMat2Vecs(A);
+  // vector < vector < double > > P_mat = NumericMat2Vecs(P);
 
   vector<double> p_scales(P_mat.size());
   for (int ii=0; ii < P_mat.size(); ii++){
@@ -184,3 +184,25 @@ vector<int> GibbsSampler::patternMarkersC(NumericMatrix A, NumericMatrix P){
   }
   return mins;
 }
+
+
+/*
+  Note: the trick works by asking how many times does a gene get assigned to the pattern
+  assigned by the mean matrix (Amean).  This means you have to do this at the end.
+
+  Want to iterate over the set of snapshots, compute patternMarker for each sample A',
+  ask if it is the same as Amean.
+
+
+  CoGAPS computes means/vars online ...
+  - for each iteration, get normed matrices and compute pattern markers (see cogapsR.cpp # 440)
+  - return vector of length n.genes where each element is the assigned pattern
+  - store pattern markers (class variable?) until end of sampling (see GibbsSampMapler.h)
+  - want matrix of integers: genes x pattern, entries are the number of times a gene is assigned
+  to a pattern
+  - compare each A' patternMarker to Amean (cogapsR.cpp # 504ish)
+  - for a given gene (row) divide the row element corresponding to the pattern from
+  Amean by the # of iterations
+  - return vector of gene PUMPs
+
+*/
