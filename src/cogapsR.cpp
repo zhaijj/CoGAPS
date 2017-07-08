@@ -551,7 +551,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
                                     Rcpp::Named("ASnapshots") = ASnapR, Rcpp::Named("PSnapshots") = PSnapR,
                                     Rcpp::Named("atomsAEquil") = nAEquil, Rcpp::Named("atomsASamp") = nASamp,
                                     Rcpp::Named("atomsPEquil") = nPEquil, Rcpp::Named("atomsPSamp") = nPSamp,
-                                                       Rcpp::Named("chiSqValues") = chiVect, Rcpp::Named("PumpStats") = pump_stats);
+                                                       Rcpp::Named("chiSqValues") = chiVect, Rcpp::Named("PumpStats") = pump_stats, Rcpp::Named("mean_pattern_assignment") = mean_pattern);
         return (fileContainer);
 
     } else {
@@ -563,7 +563,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
                                     Rcpp::Named("ASnapshots") = ASnapR, Rcpp::Named("PSnapshots") = PSnapR,
                                     Rcpp::Named("atomsAEquil") = nAEquil, Rcpp::Named("atomsASamp") = nASamp,
                                                        Rcpp::Named("atomsPEquil") = nPEquil, Rcpp::Named("atomsPSamp") = nPSamp, Rcpp::Named("chiSqValues") = chiVect,
-                                                       Rcpp::Named("PumpStats") = pump_stats);
+                                                       Rcpp::Named("PumpStats") = pump_stats, Rcpp::Named("mean_pattern_assignment") = mean_pattern);
         return (fileContainer);
     }
 }

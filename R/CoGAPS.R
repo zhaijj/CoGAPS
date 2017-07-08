@@ -86,7 +86,9 @@ CoGAPS <- function(data, unc, ABins = data.frame(), PBins = data.frame(), GStoGe
               D=data, Sigma=unc,
               Amean=matrixDecomp$Amean, Asd=matrixDecomp$Asd,
               Pmean=matrixDecomp$Pmean, Psd=matrixDecomp$Psd,
-              GSUpreg=GSP$GSUpreg, GSDownreg=GSP$GSDownreg, GSActEst=GSP$GSActEst))
+              GSUpreg=GSP$GSUpreg, GSDownreg=GSP$GSDownreg, GSActEst=GSP$GSActEst,
+              pump.stats=matrixDecomp$PumpStats,
+              mean.assignment=matrixDecomp$mean_pattern_assignment))
 
 
 }
