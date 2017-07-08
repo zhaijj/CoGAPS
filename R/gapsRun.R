@@ -226,7 +226,7 @@ gapsRun <- function(D, S, ABins = data.frame(), PBins = data.frame(),
 
   cogapResult = c(cogapResult, calcChiSq);
 
-  cogapResult[13] = cogapResult[13] + 1
+  cogapResult[[13]] = cogapResult[[13]] + 1
 
   names(cogapResult)[12] = "pump.stats";
   names(cogapResult)[13] = "mean.assignment";
