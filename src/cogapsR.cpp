@@ -297,6 +297,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
     GibbsSamp.init_sysChi2(); // initialize the system chi2 value
 
     GibbsSamp.init_pump_mat(); // initialize PUMP matrix
+    GibbsSamp.init_flat_patterns(); // initialize flat pattern vector - 0/1 valued
 
     // ===========================================================================
     // Part 2) Equilibration:
@@ -442,6 +443,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
 
         //compute pattern assignments for this scan and save results
         vector <vector <vector <double> > > NormedMats = GibbsSamp.getNormedMatrices();
+        // need to include flat patterns in call to patternMarkers
         vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1]);
         GibbsSamp.update_pump_mat(pat_assigns);
 

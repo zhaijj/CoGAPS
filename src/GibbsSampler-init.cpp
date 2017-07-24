@@ -123,3 +123,11 @@ void GibbsSampler::init_pump_mat(){
   }
   _pump_mat = pump_mat;
 }
+
+void GibbsSampler::init_flat_patterns(){
+  vector <int> flat_patterns(_nFactor);
+  for (int ii=0; ii < _nFactor; ii++){
+    flat_patterns[ii] = -1;
+  }
+  _flat_patterns = flat_patterns;
+}

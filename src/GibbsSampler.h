@@ -159,6 +159,10 @@ class GibbsSampler {
 
     void update_pump_mat(vector<int> x);
 
+    vector <int> flat_patterns;
+
+    void init_flat_patterns();
+
     // **************** METHODS FOR COMPUTING LIKELIHOOD FUNCTIONS *****************
     double cal_logLikelihood();
 
