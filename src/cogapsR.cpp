@@ -22,6 +22,7 @@
 #include "GAPSNorm.h"  // for incorporating calculation of statistics in cogaps.
 #include "GibbsSampler.h" // for incorporating the GibbsSampler which
 #include "PUMP.h" // PUMP methods
+#include "flat_patterns.h"
 // does all the atomic space to matrix conversion
 // and sampling actions.
 #include <RcppArmadillo.h>
@@ -444,7 +445,24 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
         //compute pattern assignments for this scan and save results
         vector <vector <vector <double> > > NormedMats = GibbsSamp.getNormedMatrices();
         // need to include flat patterns in call to patternMarkers
-        vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1]);
+
+        if (i == 1){ // flat_pats == -1 until this point
+          vector <int> flat_pats = find_flat_patterns(NormedMats[1], flat_eps, p_eps);
+          GibbsSamp.set_flat_pats(flat_pats);
+        }
+
+        /*
+          If we initialize the PUMP mat only after identifying flat patterns, we can
+          simply remove the offending pattern from A, P sample matrices.  This would require
+          updating the end resulting assignments however.
+
+          Alternatively, I could let the PUMP mat have the dimensionality of the full A
+          samples and keep a vector of matrix rows/columns for P/A matrices to be updated.
+          Then the appropriate column in PUMP stat will always be 0
+         */
+
+        vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1],
+                                                 GibbsSamp.get_flat_patterns());
         GibbsSamp.update_pump_mat(pat_assigns);
 
         if (SampleSnapshots && (i % (nSample / numSnapshots) == 0)) {

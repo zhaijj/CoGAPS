@@ -20,4 +20,4 @@ double pless_than(vector<double> x, int idx, double eps);
 
 vector <int> find_flat_patterns(vector<vector<double> > mat, double flat_eps, double p_eps);
 
-int check_pats(vector<int> pats);
+#endif

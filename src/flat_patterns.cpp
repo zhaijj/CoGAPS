@@ -15,6 +15,7 @@
 #include "AtomicSupport.h"  // for incorporating an Atomic class
 #include "GAPSNorm.h"  // for incorporating calculation of statistics in cogaps.
 #include "GibbsSampler.h" // for incorporating the GibbsSampler which
+#include "flat_patterns.h"
 
 // does all the atomic space to matrix conversion
 // and sampling actions.
@@ -79,10 +80,3 @@ vector <int> find_flat_patterns(vector<vector<double> > mat, double flat_eps, do
   return(flats);
 }
 
-int check_pats(vector<int> pats){
-  int out = 1;
-  for (int ii=0; ii < pats.size(); ii++){
-    if (pats[ii] == -1) out = 0;
-  }
-  return out;
-}
