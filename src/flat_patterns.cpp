@@ -29,7 +29,7 @@ using std::vector;
 using namespace Rcpp;
 
 double mean(vector<double> x){
-  float ave = accumulate(x.begin(), x.end, 0.0/x.size());
+  float ave = accumulate(x.begin(), x.end(), 0.0/x.size());
 }
 
 vector <double> i_minus(vector<double> x, int idx){
@@ -62,7 +62,7 @@ vector <int> find_flat_patterns(vector<vector<double> > mat, double flat_eps, do
   for (int ii=0; ii < mat.size(); ii++){
     vector<double> row = mat[ii];
     vector<double> ps_row(row.size());
-    mean_ii = mean(row);
+    double mean_ii = mean(row);
     // standardize pattern to have mean = 1
     for (int jj=0; jj < row.size(); jj++){
       row[jj] /= row[jj]/mean_ii;

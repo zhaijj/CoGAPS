@@ -37,8 +37,9 @@ boost::mt19937 rng(43);
 
 // [[Rcpp::export]]
 Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFrame ABinsFrame,
-                  Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config, Rcpp::NumericVector ConfigNums, int seed=-1, 
-                  bool messages=false) {
+                  Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config,
+                  Rcpp::NumericVector ConfigNums, int seed=-1,
+                  bool messages=false, double flat_eps=0.1, double p_eps=0.9) {
     // ===========================================================================
     // Initialization of the random number generator.
     // Different seeding methods:
@@ -530,7 +531,8 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
         }
     }
 
-    vector<int> mean_pattern = patternMarkers(AMeanVector, PMeanVector);
+    vector<int> mean_pattern = patternMarkers(AMeanVector, PMeanVector,
+                                              GibbsSamp.get_flat_patterns());
     vector <vector<int> > pump_mat = GibbsSamp.get_pump_mat();
     vector <double> pump_stats(pump_mat.size());
 
