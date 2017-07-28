@@ -44,7 +44,7 @@ vector <double> i_minus(vector<double> x, int idx){
 double pless_than(vector<double> x, int idx, double eps){
   vector <double> x_iless = i_minus(x, idx);
   double x_i = x[idx];
-  vector <int> lessthan(x_iless.size());
+  vector <double> lessthan(x_iless.size());
   for (int ii=0; ii < x_iless.size(); ii++){
     x_iless[ii] -= x_i;
     if (abs(x_iless[ii]) < eps){
@@ -66,7 +66,7 @@ vector <int> find_flat_patterns(vector<vector<double> > mat, double flat_eps, do
     // standardize pattern to have mean = 1
     for (int jj=0; jj < row.size(); jj++){
       row[jj] /= row[jj]/mean_ii;
-      ps_row[jj] = pless_than(row, jj, eps);
+      ps_row[jj] = pless_than(row, jj, flat_eps);
     }
     ps[ii] = mean(ps_row);
   }
