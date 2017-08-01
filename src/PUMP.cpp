@@ -131,8 +131,8 @@ int get_match_counts(vector<int> x, int a){
   return out;
 }
 
-// [[Rcpp::export()]]
-vector<int> patternMarkers(vector<vector<double> > A_mat, vector<vector<double> > P_mat,
+vector<int> patternMarkers(vector<vector<double> > A_mat,
+                           vector<vector<double> > P_mat,
                            vector<int> flat_pats){
   // get scaling factors for A matrix
   // vector < vector < double > > A_mat = NumericMat2Vecs(A);

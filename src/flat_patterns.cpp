@@ -16,11 +16,15 @@
 #include "GAPSNorm.h"  // for incorporating calculation of statistics in cogaps.
 #include "GibbsSampler.h" // for incorporating the GibbsSampler which
 #include "flat_patterns.h"
+#include "PUMP.h"
 
 // does all the atomic space to matrix conversion
 // and sampling actions.
 #include <RcppArmadillo.h>
 // ------------------------------------------------------
+
+/* NEEDED: validate this code works */
+
 
 //namespace bpo = boost::program_options;
 using namespace std;
@@ -28,17 +32,19 @@ using namespace gaps;
 using std::vector;
 using namespace Rcpp;
 
-double mean(vector<double> x){
-  float ave = accumulate(x.begin(), x.end(), 0.0/x.size());
+double cmean(vector<double> x){
+  double ave = 0;
+  for (int ii=0; ii < x.size(); ii++){
+    ave += x[ii];
+  }
+  ave /= x.size();
+  return(ave);
 }
 
 vector <double> i_minus(vector<double> x, int idx){
-  vector <double> out(x.size()-1);
-  for (int ii=0; ii < x.size(); ii++){
-    if (ii == idx) continue;
-    out[ii] = x[ii];
-  }
-  return(out);
+  vector <double> x2 = x;
+  x2.erase(x2.begin() + idx);
+  return(x2);
 }
 
 double pless_than(vector<double> x, int idx, double eps){
@@ -53,22 +59,29 @@ double pless_than(vector<double> x, int idx, double eps){
       lessthan[ii] = 0;
     }
   }
-  return(mean(lessthan));
+  return(cmean(lessthan));
 }
 
-vector <int> find_flat_patterns(vector<vector<double> > mat, double flat_eps, double p_eps){
+vector <double> standardize_row(vector <double> x){
+  double x_mean = cmean(x);
+  for (int ii=0; ii < x.size(); ii++){
+    x[ii] /= x_mean;
+  }
+  return(x);
+}
+
+vector <int> find_flat_patterns(vector<vector< double> > mat, double flat_eps, double p_eps){
   vector <int> flats(mat.size());
   vector<double> ps(mat.size());
   for (int ii=0; ii < mat.size(); ii++){
     vector<double> row = mat[ii];
     vector<double> ps_row(row.size());
-    double mean_ii = mean(row);
+    row = standardize_row(row);
     // standardize pattern to have mean = 1
     for (int jj=0; jj < row.size(); jj++){
-      row[jj] /= row[jj]/mean_ii;
       ps_row[jj] = pless_than(row, jj, flat_eps);
     }
-    ps[ii] = mean(ps_row);
+    ps[ii] = cmean(ps_row);
   }
   for (int ii=0; ii < ps.size(); ii++){
     if (ps[ii] > p_eps){
