@@ -41,7 +41,6 @@ class GibbsSamplerMap : public GibbsSampler {
     // for keeping the atomic domain consistent with the initialized matrix
     void initialize_atomic_domain_map();
 
-
     // **************** METHODS FOR COMPUTING LIKELIHOOD FUNCTIONS *****************
 
     double computeDeltaLLBDMap(char the_matrix_label,
@@ -59,6 +58,8 @@ class GibbsSamplerMap : public GibbsSampler {
                                vector <double> &newPat1, unsigned int chPat1,
                                vector <double> &newPat2, unsigned int chPat2);
 
+
+    char get_fixed_matrix();
 
     // *************** METHODS FOR MAKING PROPOSAL *********************************
 
