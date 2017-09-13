@@ -447,10 +447,13 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
         vector <vector <vector <double> > > NormedMats = GibbsSamp.getNormedMatrices();
         // need to include flat patterns in call to patternMarkers
 
-        if (i == 1){ // flat_pats == -1 until this point
-          vector <int> flat_pats = find_flat_patterns(NormedMats[1], flat_eps, p_eps);
-          GibbsSamp.set_flat_pats(flat_pats);
-        }
+        // if (i == 1){ // flat_pats == -1 until this point
+        //   vector <int> flat_pats = find_flat_patterns(NormedMats[1], flat_eps, p_eps);
+        //   for (int vv=0; vv < flat_pats.size(); vv++){
+        //     Rcpp::Rcout << "Pattern " << vv << " Flat: " << flat_pats[vv] << endl;
+        //   }
+        //   GibbsSamp.set_flat_pats(flat_pats);
+        // }
 
         /*
           If we initialize the PUMP mat only after identifying flat patterns, we can

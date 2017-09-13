@@ -28,7 +28,7 @@ patternMarkers <- function(
     full=FALSE #logical indicating whether to return the ranks of each gene for each pattern.
 ){
 
-
+  dnames <- dimnames(Amatrix)
     if(scaledPmatrix==FALSE){
         if(!is.na(Pmatrix)){
             pscale <- apply(Pmatrix,1,max)   # rescale p's to have max 1
@@ -37,7 +37,8 @@ patternMarkers <- function(
         else(warning("P values must be provided if not already scaled"))
     }
     # find the A with the highest magnitude
-    Arowmax <- t(apply(Amatrix, 1, function(x) x/max(x)))
+  dimnames(Amatrix) <- dnames
+  Arowmax <- t(apply(Amatrix, 1, function(x) x/max(x)))
     pmax<-apply(Amatrix, 1, max)
     # determine which genes are most associated with each pattern
     sstat<-matrix(NA, nrow=nrow(Amatrix), ncol=ncol(Amatrix),dimnames=dimnames(Amatrix))#list()

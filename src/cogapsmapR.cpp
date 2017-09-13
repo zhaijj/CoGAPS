@@ -424,7 +424,7 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
           PUMP mat is initialized to 0s ... if A is fixed we'll leave it like that
           need to update R output handler to accommodate this
          */
-        if(GibbsSampMap.get_fixed_matrix() == 'P'){
+        if(GibbsSampMap.get_fixed_matrix() == 'P'){ // FIXME to allow for no snaps
           vector <vector <vector <double> > > NormedMats = GibbsSampMap.getNormedMatrices();
           ASnap.push_back(NormedMats[0]);
           PSnap.push_back(NormedMats[1]);
