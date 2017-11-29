@@ -86,8 +86,6 @@ class GibbsSampler {
     vector<double> _new_mass_changed;
     vector<boost::tuple<unsigned int, unsigned int, double> > _new_matrixElemChange;
 
-
-
     // for computing statistics with matrices A and P
     // unsigned long _statindx_A, _statindx_P;  // counter
     double **_Amean;
