@@ -113,7 +113,6 @@ gapsMapRun <- function(D, S, FP, ABins = data.frame(), PBins = data.frame(), nFa
       if(numericDataErrors[i] == TRUE)
       {
         stop(paste("Error in gapsMapRun: Argument",numericCheck[i],"is of the incorrect type. Please see documentation for details."))
-
       }
     }
   }
@@ -238,8 +237,11 @@ gapsMapRun <- function(D, S, FP, ABins = data.frame(), PBins = data.frame(), nFa
 
   cogapResult = c(cogapResult, calcChiSq);
 
+  cogapResult[[13]] = cogapResult[[13]] + 1
 
-  names(cogapResult)[12] = "meanChi2";
+  names(cogapResult)[12] = "pump.stats";
+  names(cogapResult)[13] = "mean.assignment";
+  names(cogapResult)[14] = "meanChi2";
 
   message(paste("Chi-Squared of Mean:",calcChiSq))
 

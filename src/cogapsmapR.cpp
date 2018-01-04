@@ -24,6 +24,9 @@
 // does all the atomic space to matrix conversion
 // and sampling actions.
 #include "GibbsSamplerMap.h"
+
+#include "PUMP.h" // PUMP methods
+#include "flat_patterns.h"
 #include <RcppArmadillo.h>
 // ------------------------------------------------------
 
@@ -34,7 +37,7 @@ using std::vector;
 // [[Rcpp::export]]
 Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFrame FixedPatt,
                      Rcpp::DataFrame ABinsFrame, Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config, Rcpp::NumericVector ConfigNums, int seed=-1,
-                     bool messages=false) {
+                     bool messages=false, double flat_eps=0.1, double p_eps=0.9) {
     // ===========================================================================
     // Initialization of the random number generator.
     // Different seeding methods:
@@ -414,11 +417,36 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
             }
         }
 
-        if (SampleSnapshots && (i % (nSample / numSnapshots) == 0)) {
-            vector <vector <vector <double> > > NormedMats = GibbsSampMap.getNormedMatrices();
+                /*
+          PUMP mat is initialized to 0s ... if A is fixed we'll leave it like that
+          need to update R output handler to accommodate this
+         */
+        if(GibbsSampMap.get_fixed_matrix() == 'P'){ // FIXME to allow for no snaps
+          vector <vector <vector <double> > > NormedMats = GibbsSampMap.getNormedMatrices();
+          ASnap.push_back(NormedMats[0]);
+          PSnap.push_back(NormedMats[1]);
+          vector<vector<int> > tmp = GibbsSampMap.get_pump_mat();
+
+          if (i == 1){ // flat_pats == -1 until this point
+            vector <int> flat_pats = find_flat_patterns(NormedMats[1], flat_eps, p_eps);
+            GibbsSampMap.set_flat_pats(flat_pats);
+          }
+
+          vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1],
+                                                   GibbsSampMap.get_flat_patterns());
+          GibbsSampMap.update_pump_mat(pat_assigns);
+          // make if else clause to  avoid creating NormedMat 2x 
+        } else if (SampleSnapshots && (i % (nSample / numSnapshots) == 0)) {
+          vector <vector <vector <double> > > NormedMats = GibbsSampMap.getNormedMatrices();
             ASnap.push_back(NormedMats[0]);
             PSnap.push_back(NormedMats[1]);
         }
+
+        // if (SampleSnapshots && (i % (nSample / numSnapshots) == 0)) {
+        //     vector <vector <vector <double> > > NormedMats = GibbsSampMap.getNormedMatrices();
+        //     ASnap.push_back(NormedMats[0]);
+        //     PSnap.push_back(NormedMats[1]);
+        // }
 
         // -------------------------------------------
         // re-calculate nIterA and nIterP to the expected number of atoms
@@ -479,6 +507,22 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
         }
     }
 
+    vector<int> mean_pattern = patternMarkers(AMeanVector, PMeanVector,
+                                              GibbsSampMap.get_flat_patterns());
+    vector <vector<int> > pump_mat = GibbsSampMap.get_pump_mat();
+    vector <double> pump_stats(pump_mat.size());
+
+    // only actually do this if A is not fixed
+    if (GibbsSampMap.get_fixed_matrix() == 'P'){
+      for (int ii=0; ii < mean_pattern.size(); ii++){
+        pump_stats[ii] = pump_mat[ii][mean_pattern[ii]] / (double) nSample;
+      }
+    } else {
+      for (int ii=0; ii < mean_pattern.size(); ii++){
+        pump_stats[ii] = -1.0;
+      }
+    }
+
     //Code for transferring Snapshots in R
     int numSnaps = numSnapshots; //Arbitrary to keep convention
 
@@ -511,7 +555,7 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
                                     Rcpp::Named("Asd") = AStdMatrix, Rcpp::Named("Pmean") = PMeanMatrix, Rcpp::Named("Psd") = PStdMatrix,
                                     Rcpp::Named("ASnapshots") = ASnapR, Rcpp::Named("PSnapshots") = PSnapR,
                                     Rcpp::Named("atomsAEquil") = nAEquil, Rcpp::Named("atomsASamp") = nASamp,
-                                    Rcpp::Named("atomsPEquil") = nPEquil, Rcpp::Named("atomsPSamp") = nPSamp, Rcpp::Named("chiSqValues") = chiVect);
+                                    Rcpp::Named("PumpStats") = pump_stats, Rcpp::Named("mean_pattern_assignment") = mean_pattern);
         return (fileContainer);
 
     } else {
@@ -522,7 +566,8 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
                                     Rcpp::Named("Asd") = AStdMatrix, Rcpp::Named("Pmean") = PMeanMatrix, Rcpp::Named("Psd") = PStdMatrix,
                                     Rcpp::Named("ASnapshots") = ASnapR, Rcpp::Named("PSnapshots") = PSnapR,
                                     Rcpp::Named("atomsAEquil") = nAEquil, Rcpp::Named("atomsASamp") = nASamp,
-                                    Rcpp::Named("atomsPEquil") = nPEquil, Rcpp::Named("atomsPSamp") = nPSamp, Rcpp::Named("chiSqValues") = chiVect);
+                                    Rcpp::Named("atomsPEquil") = nPEquil, Rcpp::Named("atomsPSamp") = nPSamp, Rcpp::Named("chiSqValues") = chiVect,
+                                    Rcpp::Named("PumpStats") = pump_stats, Rcpp::Named("mean_pattern_assignment") = mean_pattern);
         return (fileContainer);
     }
 }

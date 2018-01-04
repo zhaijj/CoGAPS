@@ -11,6 +11,8 @@
 #include "sub_func.h"
 #include "Matrix.h"
 #include "AtomicSupport.h"
+#include "PUMP.h"
+#include "flat_patterns.h"
 #include <limits>
 #include <cmath>
 #include <limits>
@@ -86,6 +88,11 @@ class GibbsSampler {
     vector<double> _new_mass_changed;
     vector<boost::tuple<unsigned int, unsigned int, double> > _new_matrixElemChange;
 
+    // PUMP matrix for PUMP stats
+    vector<vector<int> > _pump_mat;
+    // flat pattern vector
+    vector<int> _flat_patterns;
+
     // for computing statistics with matrices A and P
     // unsigned long _statindx_A, _statindx_P;  // counter
     double **_Amean;
@@ -148,6 +155,19 @@ class GibbsSampler {
     vector <vector <double> > createSamplePMat(map <unsigned long long, double> PDomain);
 
     double ManualCalcChiSqu(vector <vector <double> > SampleAMat, vector <vector <double> > SamplePMat);
+
+    // PUMP methods
+    void init_pump_mat();
+
+    vector<vector<int> > get_pump_mat();
+
+    void update_pump_mat(vector<int> x);
+
+    void set_flat_pats(vector<int> x);
+
+    vector<int> get_flat_patterns();
+
+    void init_flat_patterns();
 
     // **************** METHODS FOR COMPUTING LIKELIHOOD FUNCTIONS *****************
     double cal_logLikelihood();

@@ -60,6 +60,8 @@ class GibbsSamplerMap : public GibbsSampler {
                                vector <double> &newPat2, unsigned int chPat2);
 
 
+    char get_fixed_matrix();
+
     // *************** METHODS FOR MAKING PROPOSAL *********************************
 
     void mapUpdate(char the_matrix_label);

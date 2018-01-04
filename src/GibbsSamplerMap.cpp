@@ -521,3 +521,7 @@ vector <vector <double> > GibbsSamplerMap::createSamplePMatMap(map <unsigned lon
     return SamplePMatrix;
 }
 
+
+char GibbsSamplerMap::get_fixed_matrix(){
+  return _the_fixed_matrix;
+}

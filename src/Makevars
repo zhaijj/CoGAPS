@@ -15,4 +15,6 @@ OBJECTS =   AtomicSupport.o \
             RcppExports.o \
             sub_func.o \
             test-runner.o \
+            PUMP.o \
+            flat_patterns.o \
             cpp_tests/testMatrix.o

@@ -393,3 +393,25 @@ double GibbsSampler::getMass(char the_matrix_label, double origMass,
 
     return newMass;
 }
+
+vector<vector<int> > GibbsSampler::get_pump_mat(){
+  return _pump_mat;
+}
+
+void GibbsSampler::update_pump_mat(vector<int> x){
+  // pump mat has outer vector == genes, inner vector == patterns
+  for (int ii=0; ii < x.size(); ii++){
+    _pump_mat[ii][x[ii]] += 1;
+  }
+}
+
+void GibbsSampler::set_flat_pats(vector<int> x){
+  for(int ii=0; ii < x.size(); ii++){
+    _flat_patterns[ii] = x[ii];
+  }
+}
+
+vector<int> GibbsSampler::get_flat_patterns(){
+  return _flat_patterns;
+}
+

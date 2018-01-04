@@ -36,7 +36,11 @@ plotPatternMarkers
 }
 \examples{
 \dontrun{
+<<<<<<< HEAD
 plotPatternMarkers(data=p,patternMarkers=PatternMarkers,patternPalette=NA,sampleNames=pd$sample,
+=======
+plotPatternMarkers(data=p,patternMarkers=PatternMarkers,patternPalette=NULL,sampleNames=pd$sample,
+>>>>>>> other-master
 samplePalette=pd$color,colDenogram=TRUE,heatmapCol="bluered", scale='row')
 }
 }
