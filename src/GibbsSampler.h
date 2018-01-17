@@ -12,7 +12,6 @@
 #include "Matrix.h"
 #include "AtomicSupport.h"
 #include "PUMP.h"
-#include "flat_patterns.h"
 #include <limits>
 #include <cmath>
 #include <limits>
