@@ -23,7 +23,6 @@
 #include "GAPSNorm.h"  // for incorporating calculation of statistics in cogaps.
 #include "GibbsSampler.h" // for incorporating the GibbsSampler which
 #include "PUMP.h" // PUMP methods
-#include "flat_patterns.h"
 // does all the atomic space to matrix conversion
 // and sampling actions.
 #include <RcppArmadillo.h>
@@ -40,7 +39,7 @@ boost::mt19937 rng(43);
 Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFrame ABinsFrame,
                   Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config,
                   Rcpp::NumericVector ConfigNums, int seed=-1,
-                  bool messages=false, double flat_eps=0.1, double p_eps=0.9) {
+                  bool messages=false, double p_eps=0.9) {
     // ===========================================================================
     // Initialization of the random number generator.
     // Different seeding methods:
@@ -299,7 +298,6 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
 
     GibbsSamp.init_sysChi2(); // initialize the system chi2 value
     GibbsSamp.init_pump_mat(); // initialize PUMP matrix
-    GibbsSamp.init_flat_patterns(); // initialize flat pattern vector - 0/1 valued
 
     // ===========================================================================
     // Part 2) Equilibration:
@@ -445,20 +443,8 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
 
         //compute pattern assignments for this scan and save results
         vector <vector <vector <double> > > NormedMats = GibbsSamp.getNormedMatrices();
-        // need to include flat patterns in call to patternMarkers
 
-        /*
-          If we initialize the PUMP mat only after identifying flat patterns, we can
-          simply remove the offending pattern from A, P sample matrices.  This would require
-          updating the end resulting assignments however.
-
-          Alternatively, I could let the PUMP mat have the dimensionality of the full A
-          samples and keep a vector of matrix rows/columns for P/A matrices to be updated.
-          Then the appropriate column in PUMP stat will always be 0
-         */
-
-        vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1],
-                                                 GibbsSamp.get_flat_patterns());
+        vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1]);
         GibbsSamp.update_pump_mat(pat_assigns);
 
         if (SampleSnapshots && (i % (nSample / numSnapshots) == 0)) {
@@ -526,8 +512,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
         }
     }
 
-    vector<int> mean_pattern = patternMarkers(AMeanVector, PMeanVector,
-                                              GibbsSamp.get_flat_patterns());
+    vector<int> mean_pattern = patternMarkers(AMeanVector, PMeanVector);
     vector <vector<int> > pump_mat = GibbsSamp.get_pump_mat();
     vector <double> pump_stats(pump_mat.size());
 

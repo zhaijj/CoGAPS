@@ -26,7 +26,6 @@
 #include "GibbsSamplerMap.h"
 
 #include "PUMP.h" // PUMP methods
-#include "flat_patterns.h"
 #include <RcppArmadillo.h>
 // ------------------------------------------------------
 
@@ -37,7 +36,7 @@ using std::vector;
 // [[Rcpp::export]]
 Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFrame FixedPatt,
                      Rcpp::DataFrame ABinsFrame, Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config, Rcpp::NumericVector ConfigNums, int seed=-1,
-                     bool messages=false, double flat_eps=0.1, double p_eps=0.9) {
+                     bool messages=false, double p_eps=0.9) {
     // ===========================================================================
     // Initialization of the random number generator.
     // Different seeding methods:
@@ -427,13 +426,7 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
           PSnap.push_back(NormedMats[1]);
           vector<vector<int> > tmp = GibbsSampMap.get_pump_mat();
 
-          if (i == 1){ // flat_pats == -1 until this point
-            vector <int> flat_pats = find_flat_patterns(NormedMats[1], flat_eps, p_eps);
-            GibbsSampMap.set_flat_pats(flat_pats);
-          }
-
-          vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1],
-                                                   GibbsSampMap.get_flat_patterns());
+          vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1]);
           GibbsSampMap.update_pump_mat(pat_assigns);
           // make if else clause to  avoid creating NormedMat 2x 
         } else if (SampleSnapshots && (i % (nSample / numSnapshots) == 0)) {
@@ -507,8 +500,7 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
         }
     }
 
-    vector<int> mean_pattern = patternMarkers(AMeanVector, PMeanVector,
-                                              GibbsSampMap.get_flat_patterns());
+    vector<int> mean_pattern = patternMarkers(AMeanVector, PMeanVector);
     vector <vector<int> > pump_mat = GibbsSampMap.get_pump_mat();
     vector <double> pump_stats(pump_mat.size());
 

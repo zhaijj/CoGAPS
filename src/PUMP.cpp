@@ -132,8 +132,7 @@ int get_match_counts(vector<int> x, int a){
 }
 
 vector<int> patternMarkers(vector<vector<double> > A_mat,
-                           vector<vector<double> > P_mat,
-                           vector<int> flat_pats){
+                           vector<vector<double> > P_mat){
   // get scaling factors for A matrix
   // vector < vector < double > > A_mat = NumericMat2Vecs(A);
   // vector < vector < double > > P_mat = NumericMat2Vecs(P);
@@ -170,10 +169,6 @@ vector<int> patternMarkers(vector<vector<double> > A_mat,
   vector<int> mins(Arowmax.size());
 
   for (int ii=0; ii < Arowmax[0].size(); ii++){
-    // if a pattern is flat across samples we skip it
-    if (flat_pats[ii] == 1){
-      continue;
-    }
     vector <double> lp(A_mat[0].size(), 0);
     lp[ii] = 1;
     for (int jj=0; jj < Arowmax.size(); jj++){

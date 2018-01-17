@@ -404,14 +404,3 @@ void GibbsSampler::update_pump_mat(vector<int> x){
     _pump_mat[ii][x[ii]] += 1;
   }
 }
-
-void GibbsSampler::set_flat_pats(vector<int> x){
-  for(int ii=0; ii < x.size(); ii++){
-    _flat_patterns[ii] = x[ii];
-  }
-}
-
-vector<int> GibbsSampler::get_flat_patterns(){
-  return _flat_patterns;
-}
-

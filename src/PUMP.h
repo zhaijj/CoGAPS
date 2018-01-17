@@ -27,7 +27,6 @@ vector<int> get_unique(vector<int> x);
 
 int get_match_counts(vector<int> x, int a);
 
-vector<int> patternMarkers(vector<vector<double> > A_mat, vector<vector<double> > P_mat,
-                           vector<int> flat_pats);
+vector<int> patternMarkers(vector<vector<double> > A_mat, vector<vector<double> > P_mat);
 
 #endif
