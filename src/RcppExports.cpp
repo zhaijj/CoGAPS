@@ -106,3 +106,4 @@ RcppExport void R_init_CoGAPS(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }
+ 
