@@ -59,11 +59,11 @@ patternMarkers <- function(
         }
     } else {
         for(i in 1:nP){
-            lp <- rep(0,dim(Amatrix)[2])
-            lp[i] <- 1
-            sstat[,i] <- apply(Arowmax, 1, function(x) sqrt(t(x-lp)%*%(x-lp)))
-            ssranks[order(sstat[,i]),i] <- 1:length(sstat[,i])
-            ##ssgenes[,i]<-names(sort(sstat[,i],decreasing=FALSE))
+          lp <- rep(0,dim(Amatrix)[2])
+          lp[i] <- 1
+          sstat[,i] <- apply(Arowmax, 1, function(x) sqrt(t(x-lp)%*%(x-lp)))
+          ssranks[order(sstat[,i]),i] <- 1:length(sstat[,i])
+          ssgenes[,i]<-names(sort(sstat[,i],decreasing=FALSE))
         }
     }
     if(threshold=="cut"){
@@ -77,7 +77,7 @@ patternMarkers <- function(
     if(threshold=="unique"){
         pIndx<-apply(sstat,1,which.min) 
         gBYp <- lapply(sort(unique(pIndx)),function(x) names(pIndx[pIndx==x]))
-        ssgenes.th <- lapply(1:nP, function(x){ ## How is this not redundant?
+        ssgenes.th <- lapply(1:nP, function(x){ ## 
             if (x > length(gBYp)){ return(NA) }
             ssgenes[which(ssgenes[,x] %in% gBYp[[x]]),x]
         })

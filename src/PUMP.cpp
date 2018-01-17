@@ -131,8 +131,66 @@ int get_match_counts(vector<int> x, int a){
   return out;
 }
 
+vector<int> orderC(vector<double> invec){
+  int n = invec.size();
+  vector<std::pair <double, int> > ordvec(n);
+
+  for (int ii=0; ii < n; ii++){
+    ordvec[ii] = std::make_pair<double, int>(invec[ii], ii+1);
+  }
+
+  std::sort(ordvec.begin(), ordvec.end());
+
+  vector<int> outvec(n);
+  for (int ii=0; ii < n; ii++){
+    outvec[ii] = ordvec[ii].second;
+  }
+  return outvec;
+}
+
+int getGeneThreshold(vector<vector<int> > ranx, int pattern_idx){
+  <vector<vector<int> > sorted_mat(ranx.size(), vector<int>(ranx[0].size()));
+  for (int ii=0; ii < ranx.size(); ii++){
+    row_idx = ranx[ii][pattern_idx];
+    for (int jj=0; jj < ranx[0].size()){
+      sorted_mat[row_idx][jj] = ranx[ii][jj];
+    }
+  }
+
+  int cut = -1;
+  bool still_min = true;
+
+  for (int ii=0; ii < sorted_mat.size(); ii++){
+    for (int jj=0; jj < sorted_mat[0].size(); jj++){
+      if (jj == pattern_idx){
+        break;
+      }
+      if (sorted_mat[ii][row_idx] > sorted_mat[ii][jj]){
+        still_min = false;
+        cut = ii;
+        break;
+      }
+    }
+    if (!still_min){
+      break;
+    }
+  }
+  return cut;
+}
+
 vector<int> patternMarkers(vector<vector<double> > A_mat,
-                           vector<vector<double> > P_mat){
+                           vector<vector<double> > P_mat,
+                           vector<double> lp
+                           std::string threshold){
+  // update the R wrapper to check for lp = NA and generate a vector of NAs or no
+  // propagate these through cogapsR and cogapsmapR
+  bool lp_NA = false;
+  if (R_IsNA(lp[0])){
+    lp_NA = true;
+    for (int ii = 0; ii < lp.size(); ii++){
+      lp[ii] = 0;
+    }
+  }
   // get scaling factors for A matrix
   // vector < vector < double > > A_mat = NumericMat2Vecs(A);
   // vector < vector < double > > P_mat = NumericMat2Vecs(P);
@@ -152,25 +210,25 @@ vector<int> patternMarkers(vector<vector<double> > A_mat,
   vector < vector < double > >  Arowmax(A_mat.size(), vector <double>(A_mat[0].size()));
   for (int ii=0; ii < A_mat.size(); ii++){
     for (int jj=0; jj < A_mat[0].size(); jj++){
-      // t(Arowmax) is needed bc apply returns pattern x genes, but genes x pattern is what is desired
+      // t(Arowmax) is needed bc apply returns pattern x genes,
+      // but genes x pattern is what is desired
       Arowmax[ii][jj] = A_mat[ii][jj]/get_max(A_mat[ii]); 
     }
   }
   // get maxes
-
-  vector<double>  pmax(A_mat.size());
+  vector<double> pmax(A_mat.size());
   for(int ii=0; ii < A_mat.size(); ii++){
     pmax[ii] = get_max(A_mat[ii]);
   }
-  // this is equivalent to setting lp = NA
-  vector <vector <double> > sstat (A_mat.size(), vector <double> (A_mat[0].size()));
-  int counter = 0;
 
-  vector<int> mins(Arowmax.size());
+  // mostly same if lp is NA or not
+  vector <vector <double> > sstat (A_mat.size(), vector <double> (A_mat[0].size()));
 
   for (int ii=0; ii < Arowmax[0].size(); ii++){
-    vector <double> lp(A_mat[0].size(), 0);
-    lp[ii] = 1;
+    // vector <double> lp(A_mat[0].size(), 0);
+    if (lp_NA){
+      lp[ii] = 1;
+    }
     for (int jj=0; jj < Arowmax.size(); jj++){
       vector <double> tmp_A = Arowmax[jj];
       vector <double> vv = vectorDiff(tmp_A, lp);
@@ -178,10 +236,47 @@ vector<int> patternMarkers(vector<vector<double> > A_mat,
     }
   } // end for loop over number of patterns
 
-  for (int ii=0; ii < mins.size(); ii++){
-    vector<double> tmp = sstat[ii];
-    mins[ii] = which_min(tmp);
-  }
+  vector<int> mins(Arowmax.size());
+
+  if (threshold == "unique"){
+    // remember "unique" is simply minimum dist for each gene
+    for (int ii=0; ii < mins.size(); ii++){
+      vector<double> tmp = sstat[ii];
+      mins[ii] = which_min(tmp);
+    }
+  } else if (threshold == "cut"){
+    // create this so I can easily index into columns rather than rows below 
+    vector<vector<double> > sstat_T (sstat[0].size(), vector<double> (sstat.size()));
+
+    // ineffecient but at least matrix sizes will be small
+    for (int ii=0; ii < sstat.size(); ii++){
+      for (int jj=0; jj < sstat[0].size(); jj++){
+        sstat_T[jj][ii] = sstat[ii][jj];
+      }
+    }
+
+    /* first construct ranking matrix
+       then for each column find row for which min of that column is >
+       min of other columns
+     */
+    vector<vector<int> > rank_mat(Arowmax.size(), vector<int> (Arowmax[0].size()));
+    for (int ii=0; ii < lp.size(); ii++){
+      // sstat need to index columns not rows
+      vector<int> ranx = orderC(sstat_T[ii]);
+      for (int jj=0; jj < ranx.size(); jj++){
+        rank_mat[jj][ii] = ranx[jj];
+      }// end rank matrix column update loop
+    }// end rank matrix creation loop
+
+    vector<int> cuts(lp.size());
+
+    for (int ii=0; ii < lp.size(); ii++){
+      cuts[ii] = getGeneThreshold(rank_mat, ii);
+    }
+
+    // so how do I return data in threshold?
+
+  } // end ifelse
   return mins;
 }
 
