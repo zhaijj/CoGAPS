@@ -38,8 +38,9 @@ boost::mt19937 rng(43);
 // [[Rcpp::export]]
 Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFrame ABinsFrame,
                   Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config,
+                  Rcpp::NumericVector LP, std::string threshold,
                   Rcpp::NumericVector ConfigNums, int seed=-1,
-                  bool messages=false, double p_eps=0.9) {
+                  bool messages=false) {
     // ===========================================================================
     // Initialization of the random number generator.
     // Different seeding methods:
@@ -175,6 +176,8 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
             SVector[i][j] = tempFrameElement;
         }
     }
+
+    vector<double> lp = Rcpp::as< vector<double> >(LP);
 
     //--------------------END CREATING D and S C++ VECTORS
     // Parameters or structures to be calculated or constructed:
@@ -443,8 +446,8 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
 
         //compute pattern assignments for this scan and save results
         vector <vector <vector <double> > > NormedMats = GibbsSamp.getNormedMatrices();
-
-        vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1]);
+        
+        vector<vector<int> > pat_assigns = patternMarkers(NormedMats[0], NormedMats[1], lp, threshold);
         GibbsSamp.update_pump_mat(pat_assigns);
 
         if (SampleSnapshots && (i % (nSample / numSnapshots) == 0)) {
@@ -512,12 +515,17 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
         }
     }
 
-    vector<int> mean_pattern = patternMarkers(AMeanVector, PMeanVector);
+    vector<vector<int> > mean_pattern = patternMarkers(AMeanVector, PMeanVector, lp, threshold);
     vector <vector<int> > pump_mat = GibbsSamp.get_pump_mat();
-    vector <double> pump_stats(pump_mat.size());
+    vector<vector <double> > pump_stats(pump_mat.size(), vector<double>(pump_mat[0].size()));
 
     for (int ii=0; ii < mean_pattern.size(); ii++){
-      pump_stats[ii] = pump_mat[ii][mean_pattern[ii]] / (double) nSample;
+      for(int jj=0; jj < mean_pattern[0].size(); jj++){
+        if (mean_pattern[ii][jj] == 0){
+          break;
+        }
+        pump_stats[ii][jj] = pump_mat[ii][jj] / (double) nSample;
+      }
     }
 
     //Code for transferring Snapshots in R

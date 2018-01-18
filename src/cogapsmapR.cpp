@@ -35,8 +35,10 @@ using std::vector;
 
 // [[Rcpp::export]]
 Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFrame FixedPatt,
-                     Rcpp::DataFrame ABinsFrame, Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config, Rcpp::NumericVector ConfigNums, int seed=-1,
-                     bool messages=false, double p_eps=0.9) {
+                     Rcpp::DataFrame ABinsFrame, Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config,
+                     Rcpp::NumericVector LP, std::string threshold,
+                     Rcpp::NumericVector ConfigNums, int seed=-1,
+                     bool messages=false) {
     // ===========================================================================
     // Initialization of the random number generator.
     // Different seeding methods:
@@ -178,6 +180,8 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
             FPVector[i][j] = tempFrameElement;
         }
     }
+
+    vector<double> lp = Rcpp::as< vector<double> >(LP);
 
     //--------------------END CREATING D and S C++ VECTORS
     // Parameters or structures to be calculated or constructed:
@@ -426,7 +430,7 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
           PSnap.push_back(NormedMats[1]);
           vector<vector<int> > tmp = GibbsSampMap.get_pump_mat();
 
-          vector<int> pat_assigns = patternMarkers(NormedMats[0], NormedMats[1]);
+          vector<vector<int> > pat_assigns = patternMarkers(NormedMats[0], NormedMats[1], lp, threshold);
           GibbsSampMap.update_pump_mat(pat_assigns);
           // make if else clause to  avoid creating NormedMat 2x 
         } else if (SampleSnapshots && (i % (nSample / numSnapshots) == 0)) {
@@ -500,18 +504,25 @@ Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataF
         }
     }
 
-    vector<int> mean_pattern = patternMarkers(AMeanVector, PMeanVector);
+    vector<vector<int> > mean_pattern = patternMarkers(AMeanVector, PMeanVector, lp, threshold);
     vector <vector<int> > pump_mat = GibbsSampMap.get_pump_mat();
-    vector <double> pump_stats(pump_mat.size());
+    vector<vector <double> > pump_stats(pump_mat.size(), vector<double>(pump_mat[0].size()));
 
     // only actually do this if A is not fixed
     if (GibbsSampMap.get_fixed_matrix() == 'P'){
       for (int ii=0; ii < mean_pattern.size(); ii++){
-        pump_stats[ii] = pump_mat[ii][mean_pattern[ii]] / (double) nSample;
+        for (int jj=0; jj < mean_pattern[0].size(); jj++){
+          if (mean_pattern[ii][jj] == 0){
+            break;
+          }
+          pump_stats[ii][jj] = pump_mat[ii][jj] / (double) nSample;
+        }
       }
     } else {
       for (int ii=0; ii < mean_pattern.size(); ii++){
-        pump_stats[ii] = -1.0;
+        for (int jj=0; jj < mean_pattern[0].size(); jj++){
+          pump_stats[ii][jj] = -1.0;
+        }
       }
     }
 

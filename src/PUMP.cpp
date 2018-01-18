@@ -149,19 +149,21 @@ vector<int> orderC(vector<double> invec){
 }
 
 int getGeneThreshold(vector<vector<int> > ranx, int pattern_idx){
-  <vector<vector<int> > sorted_mat(ranx.size(), vector<int>(ranx[0].size()));
+  vector<vector<int> > sorted_mat(ranx.size(), vector<int>(ranx[0].size()));
   for (int ii=0; ii < ranx.size(); ii++){
-    row_idx = ranx[ii][pattern_idx];
-    for (int jj=0; jj < ranx[0].size()){
+    int row_idx = ranx[ii][pattern_idx];
+    for (int jj=0; jj < ranx[0].size(); jj++){
       sorted_mat[row_idx][jj] = ranx[ii][jj];
     }
   }
 
-  int cut = -1;
+  int cut = 0;
   bool still_min = true;
 
   for (int ii=0; ii < sorted_mat.size(); ii++){
+    int row_idx = ranx[ii][pattern_idx];
     for (int jj=0; jj < sorted_mat[0].size(); jj++){
+      // don't compare the specified pattern value to itself
       if (jj == pattern_idx){
         break;
       }
@@ -171,6 +173,7 @@ int getGeneThreshold(vector<vector<int> > ranx, int pattern_idx){
         break;
       }
     }
+    // if the pattern we compared is smaller then stop now
     if (!still_min){
       break;
     }
@@ -178,10 +181,10 @@ int getGeneThreshold(vector<vector<int> > ranx, int pattern_idx){
   return cut;
 }
 
-vector<int> patternMarkers(vector<vector<double> > A_mat,
-                           vector<vector<double> > P_mat,
-                           vector<double> lp
-                           std::string threshold){
+vector<vector<int> > patternMarkers(vector<vector<double> > A_mat,
+                                    vector<vector<double> > P_mat,
+                                    vector<double> lp,
+                                    std::string threshold){
   // update the R wrapper to check for lp = NA and generate a vector of NAs or no
   // propagate these through cogapsR and cogapsmapR
   bool lp_NA = false;
@@ -236,13 +239,21 @@ vector<int> patternMarkers(vector<vector<double> > A_mat,
     }
   } // end for loop over number of patterns
 
-  vector<int> mins(Arowmax.size());
+
+  /* "threshold" and "unique" are related in that "unique" can be
+     thought of as generating a 0/1 valued matrix with only 1 non-zero
+     element per matrix row, while "threshold" generates a matrix with
+     no bound on the number of non-zero elements per row
+  */
+
+  vector<vector<int> > score_mat(Arowmax.size(), vector<int> (Arowmax[0].size()));
 
   if (threshold == "unique"){
     // remember "unique" is simply minimum dist for each gene
-    for (int ii=0; ii < mins.size(); ii++){
+    for (int ii=0; ii < score_mat.size(); ii++){
       vector<double> tmp = sstat[ii];
-      mins[ii] = which_min(tmp);
+      int jj_min = which_min(tmp);
+      score_mat[ii][jj_min] += 1;
     }
   } else if (threshold == "cut"){
     // create this so I can easily index into columns rather than rows below 
@@ -255,7 +266,7 @@ vector<int> patternMarkers(vector<vector<double> > A_mat,
       }
     }
 
-    /* first construct ranking matrix
+    /* FIXME: first construct ranking matrix
        then for each column find row for which min of that column is >
        min of other columns
      */
@@ -268,16 +279,17 @@ vector<int> patternMarkers(vector<vector<double> > A_mat,
       }// end rank matrix column update loop
     }// end rank matrix creation loop
 
-    vector<int> cuts(lp.size());
+    int cut_ii = 0;
 
     for (int ii=0; ii < lp.size(); ii++){
-      cuts[ii] = getGeneThreshold(rank_mat, ii);
+      cut_ii = getGeneThreshold(rank_mat, ii);
+      for (int jj=0; jj < cut_ii; jj++){
+        score_mat[jj][ii] += 1;
+      }
     }
 
-    // so how do I return data in threshold?
-
   } // end ifelse
-  return mins;
+  return score_mat;
 }
 
 

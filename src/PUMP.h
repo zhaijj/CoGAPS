@@ -27,6 +27,13 @@ vector<int> get_unique(vector<int> x);
 
 int get_match_counts(vector<int> x, int a);
 
-vector<int> patternMarkers(vector<vector<double> > A_mat, vector<vector<double> > P_mat);
+vector<int> orderC(vector<double> invec);
+
+int getGeneThreshold(vector<vector<int> > ranx, int pattern_idx);
+
+vector<vector<int> > patternMarkers(vector<vector<double> > A_mat,
+                                    vector<vector<double> > P_mat,
+                                    vector<double> lp,
+                                    std::string threshold);
 
 #endif

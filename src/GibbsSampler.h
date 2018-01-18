@@ -160,7 +160,7 @@ class GibbsSampler {
 
     vector<vector<int> > get_pump_mat();
 
-    void update_pump_mat(vector<int> x);
+    void update_pump_mat(vector<vector<int> > x);
 
     // **************** METHODS FOR COMPUTING LIKELIHOOD FUNCTIONS *****************
     double cal_logLikelihood();

@@ -398,9 +398,11 @@ vector<vector<int> > GibbsSampler::get_pump_mat(){
   return _pump_mat;
 }
 
-void GibbsSampler::update_pump_mat(vector<int> x){
+void GibbsSampler::update_pump_mat(vector<vector<int> > x){
   // pump mat has outer vector == genes, inner vector == patterns
   for (int ii=0; ii < x.size(); ii++){
-    _pump_mat[ii][x[ii]] += 1;
+    for (int jj=0; jj < x[0].size(); jj++){
+      _pump_mat[ii][jj] += x[ii][jj];
+    }
   }
 }
