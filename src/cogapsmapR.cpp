@@ -36,9 +36,9 @@ using std::vector;
 // [[Rcpp::export]]
 Rcpp::List cogapsMap(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFrame FixedPatt,
                      Rcpp::DataFrame ABinsFrame, Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config,
+                     Rcpp::NumericVector ConfigNums,
                      Rcpp::NumericVector LP, std::string threshold,
-                     Rcpp::NumericVector ConfigNums, int seed=-1,
-                     bool messages=false) {
+                     int seed=-1, bool messages=false) {
     // ===========================================================================
     // Initialization of the random number generator.
     // Different seeding methods:

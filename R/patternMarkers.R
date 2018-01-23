@@ -45,13 +45,13 @@ patternMarkers <- function(
     # determine which genes are most associated with each pattern
     sstat<-matrix(NA, nrow=nrow(Amatrix), ncol=ncol(Amatrix),dimnames=dimnames(Amatrix))#list()
     ssranks<-matrix(NA, nrow=nrow(Amatrix), ncol=ncol(Amatrix),dimnames=dimnames(Amatrix))#lst
-    ssgenes<-matrix(NA, nrow=nrow(Amatrix), ncol=ncol(Amatrix),dimnames=NULL)
+  ssgenes<-matrix(NA, nrow=nrow(Amatrix), ncol=ncol(Amatrix),dimnames=NULL)
+  ssgenes.th <- list()
     nP=dim(Amatrix)[2]
     if(!is.na(lp)){
         if(length(lp)!=dim(Amatrix)[2]){
             warning("lp length must equal the number of columns of the Amatrix")
         }
-        ## this I is missing a loop
         for (i in 1:nP){
           sstat[,i] <- apply(Arowmax, 1, function(x) sqrt(t(x-lp)%*%(x-lp)))
           ssranks[order(sstat[,i]),i] <- 1:length(sstat[,i])
@@ -69,12 +69,15 @@ patternMarkers <- function(
     if(threshold=="cut"){
         geneThresh <- sapply(1:nP,function(x) min(which(ssranks[ssgenes[,x],x] >
                                                         apply(ssranks[ssgenes[,x],],1,min))))
+        if (any(is.infinite(geneThresh))){
+          stop("Specified basis vector does not discriminate patterns in this dataset")
+        }
         ssgenes.th <- sapply(1:nP,function(x) ssgenes[1:geneThresh[x],x])
         ## geneThresh <- apply(sweep(ssranks,1,t(apply(ssranks, 1, min)),"-"),2,
         ## function(x) which(x==0))
         #ssgenes.th <- lapply(geneThresh,names)
     }
-    if(threshold=="unique"){
+  if(threshold=="unique"){
         pIndx<-apply(sstat,1,which.min) 
         gBYp <- lapply(sort(unique(pIndx)),function(x) names(pIndx[pIndx==x]))
         ssgenes.th <- lapply(1:nP, function(x){ ## 

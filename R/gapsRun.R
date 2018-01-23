@@ -61,6 +61,7 @@ gapsRun <- function(D, S, ABins = data.frame(), PBins = data.frame(),
                     numSnapshots = 100, alphaA = 0.01,
                     nMaxA = 100000, max_gibbmass_paraA = 100.0,
                     alphaP = 0.01, nMaxP = 100000, max_gibbmass_paraP = 100.0,
+                    LP=c(NA), threshold="unique",
                     seed=-1, messages=TRUE)
 {
   #Begin data type error checking code
@@ -192,7 +193,7 @@ gapsRun <- function(D, S, ABins = data.frame(), PBins = data.frame(),
   }
 
   # call to C++ Rcpp code
-  cogapResult = cogaps(D, S, ABins, PBins, Config, ConfigNums, seed, messages);
+  cogapResult = cogaps(D, S, ABins, PBins, Config, ConfigNums, LP, threshold, seed, messages);
 
   # convert returned files to matrices to simplify visualization and processing
   cogapResult$Amean = as.matrix(cogapResult$Amean);
@@ -226,7 +227,7 @@ gapsRun <- function(D, S, ABins = data.frame(), PBins = data.frame(),
 
   cogapResult = c(cogapResult, calcChiSq);
 
-  cogapResult[[13]] = cogapResult[[13]] + 1
+  cogapResult[[13]] = cogapResult[[13]]
 
   names(cogapResult)[12] = "pump.stats";
   names(cogapResult)[13] = "mean.assignment";

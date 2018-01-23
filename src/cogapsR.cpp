@@ -38,9 +38,9 @@ boost::mt19937 rng(43);
 // [[Rcpp::export]]
 Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFrame ABinsFrame,
                   Rcpp::DataFrame PBinsFrame, Rcpp::CharacterVector Config,
+                  Rcpp::NumericVector ConfigNums,
                   Rcpp::NumericVector LP, std::string threshold,
-                  Rcpp::NumericVector ConfigNums, int seed=-1,
-                  bool messages=false) {
+                  int seed=-1, bool messages=false) {
     // ===========================================================================
     // Initialization of the random number generator.
     // Different seeding methods:
@@ -177,6 +177,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
         }
     }
 
+    // FIXME: need to check for param size?
     vector<double> lp = Rcpp::as< vector<double> >(LP);
 
     //--------------------END CREATING D and S C++ VECTORS
@@ -446,8 +447,8 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
 
         //compute pattern assignments for this scan and save results
         vector <vector <vector <double> > > NormedMats = GibbsSamp.getNormedMatrices();
-        
-        vector<vector<int> > pat_assigns = patternMarkers(NormedMats[0], NormedMats[1], lp, threshold);
+        vector<vector<int> > pat_assigns = patternMarkers(NormedMats[0], NormedMats[1], lp,
+                                                          threshold);
         GibbsSamp.update_pump_mat(pat_assigns);
 
         if (SampleSnapshots && (i % (nSample / numSnapshots) == 0)) {

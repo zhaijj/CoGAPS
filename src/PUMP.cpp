@@ -131,12 +131,13 @@ int get_match_counts(vector<int> x, int a){
   return out;
 }
 
+
 vector<int> orderC(vector<double> invec){
   int n = invec.size();
   vector<std::pair <double, int> > ordvec(n);
 
   for (int ii=0; ii < n; ii++){
-    ordvec[ii] = std::make_pair<double, int>(invec[ii], ii+1);
+    ordvec[ii] = std::make_pair<double, int>(invec[ii], ii);
   }
 
   std::sort(ordvec.begin(), ordvec.end());
@@ -159,17 +160,13 @@ int getGeneThreshold(vector<vector<int> > ranx, int pattern_idx){
 
   int cut = 0;
   bool still_min = true;
-
   for (int ii=0; ii < sorted_mat.size(); ii++){
-    int row_idx = ranx[ii][pattern_idx];
     for (int jj=0; jj < sorted_mat[0].size(); jj++){
-      // don't compare the specified pattern value to itself
-      if (jj == pattern_idx){
-        break;
-      }
-      if (sorted_mat[ii][row_idx] > sorted_mat[ii][jj]){
+      if ((sorted_mat[ii][pattern_idx] >= sorted_mat[ii][jj]) &
+          // we want to compare pattern at pattern_idx to other patterns
+          (jj != pattern_idx)){
         still_min = false;
-        cut = ii;
+        cut = ((ii == 0) ? 0 : ii - 1);
         break;
       }
     }
@@ -190,6 +187,7 @@ vector<vector<int> > patternMarkers(vector<vector<double> > A_mat,
   bool lp_NA = false;
   if (R_IsNA(lp[0])){
     lp_NA = true;
+    lp.resize(A_mat[0].size());
     for (int ii = 0; ii < lp.size(); ii++){
       lp[ii] = 0;
     }
@@ -266,10 +264,6 @@ vector<vector<int> > patternMarkers(vector<vector<double> > A_mat,
       }
     }
 
-    /* FIXME: first construct ranking matrix
-       then for each column find row for which min of that column is >
-       min of other columns
-     */
     vector<vector<int> > rank_mat(Arowmax.size(), vector<int> (Arowmax[0].size()));
     for (int ii=0; ii < lp.size(); ii++){
       // sstat need to index columns not rows
@@ -283,11 +277,14 @@ vector<vector<int> > patternMarkers(vector<vector<double> > A_mat,
 
     for (int ii=0; ii < lp.size(); ii++){
       cut_ii = getGeneThreshold(rank_mat, ii);
-      for (int jj=0; jj < cut_ii; jj++){
-        score_mat[jj][ii] += 1;
-      }
-    }
-
+      // now we have do things such that we are indexing in the original ordering
+      for (int jj=0; jj < score_mat.size(); jj++){
+        int row_idx = rank_mat[jj][ii];
+        if (row_idx <= cut_ii){
+          score_mat[jj][ii] += 1;
+        }
+      } //end for loop over columns
+    } // end for loop over rows
   } // end ifelse
   return score_mat;
 }

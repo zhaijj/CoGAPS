@@ -57,22 +57,24 @@
 #'@param max_gibbmass_paraP limit truncated normal to max size
 #'@export
 
-CoGAPS <- function(data, unc, ABins = data.frame(), PBins = data.frame(), GStoGenes, nFactor = 7, simulation_id="simulation", nEquil=1000,
-                nSample=1000, nOutR=1000, output_atomic=FALSE,
-                fixedBinProbs = FALSE, fixedDomain = "N",
-                sampleSnapshots = TRUE, numSnapshots = 100,
-                plot=TRUE, nPerm=500,
-                alphaA = 0.01,  nMaxA = 100000,
-                max_gibbmass_paraA = 100.0,
-                alphaP = 0.01, nMaxP = 100000,
-                max_gibbmass_paraP = 100.0) {
+CoGAPS <- function(data, unc, ABins = data.frame(), PBins = data.frame(), GStoGenes,
+                   nFactor = 7, simulation_id="simulation", nEquil=1000,
+                   nSample=1000, nOutR=1000, output_atomic=FALSE,
+                   fixedBinProbs = FALSE, fixedDomain = "N",
+                   sampleSnapshots = TRUE, numSnapshots = 100,
+                   plot=TRUE, nPerm=500,
+                   LP=c(NA), threshold="unique",
+                   alphaA = 0.01,  nMaxA = 100000,
+                   max_gibbmass_paraA = 100.0,
+                   alphaP = 0.01, nMaxP = 100000,
+                   max_gibbmass_paraP = 100.0) {
 
 
   # decompose the data
   matrixDecomp <- gapsRun(data, unc, ABins, PBins, nFactor, simulation_id,
                     nEquil, nSample, nOutR, output_atomic, fixedBinProbs,
                     fixedDomain, sampleSnapshots, numSnapshots, alphaA,  nMaxA, max_gibbmass_paraA,
-                    alphaP, nMaxP, max_gibbmass_paraP)
+                    alphaP, nMaxP, max_gibbmass_paraP, LP=LP, threshold=threshold)
 
   # plot patterns and show heatmap of Anorm
   if (plot) {

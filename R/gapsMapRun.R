@@ -57,10 +57,12 @@
 #'@param messages Display progress messages
 #'@export
 
-gapsMapRun <- function(D, S, FP, ABins = data.frame(), PBins = data.frame(), nFactor = 5, simulation_id = "simulation",
-                       nEquil = 1000, nSample = 1000, nOutR = 1000, output_atomic = FALSE, fixedMatrix = "P",
-                       fixedBinProbs = FALSE, fixedDomain = "N", sampleSnapshots = TRUE, numSnapshots = 100, alphaA = 0.01,
-                       nMaxA = 100000, max_gibbmass_paraA = 100.0, alphaP = 0.01, nMaxP = 100000, max_gibbmass_paraP = 100.0,
+gapsMapRun <- function(D, S, FP, ABins = data.frame(), PBins = data.frame(), nFactor = 5,
+                       simulation_id = "simulation", nEquil = 1000, nSample = 1000, nOutR = 1000,
+                       output_atomic = FALSE, fixedMatrix = "P", fixedBinProbs = FALSE, fixedDomain = "N",
+                       sampleSnapshots = TRUE, numSnapshots = 100, alphaA = 0.01, nMaxA = 100000,
+                       max_gibbmass_paraA = 100.0, alphaP = 0.01, nMaxP = 100000, max_gibbmass_paraP = 100.0,
+                       LP=c(NA), threshold="unique",
                        seed=-1, messages=TRUE)
 {
   #Begin data type error checking code
@@ -202,8 +204,7 @@ gapsMapRun <- function(D, S, FP, ABins = data.frame(), PBins = data.frame(), nFa
   }
 
   # call to C++ Rcpp code
-  cogapResult = cogapsMap(D, S, FP, ABins, PBins, Config, ConfigNums, seed,
-                          messages);
+  cogapResult = cogapsMap(D, S, FP, ABins, PBins, Config, ConfigNums, LP, threshold, seed, messages);
 
   # convert returned files to matrices to simplify visualization and processing
   cogapResult$Amean = as.matrix(cogapResult$Amean);
