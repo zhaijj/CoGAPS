@@ -200,6 +200,7 @@ vector<vector<int> > patternMarkers(vector<vector<double> > A_mat,
   for (int ii=0; ii < P_mat.size(); ii++){
     p_scales[ii] = get_max(P_mat[ii]);
   }
+
   // scale A matrix, assuming P matrix is not scaled
   for (int ii=0; ii < A_mat[0].size(); ii++){
     for (int jj=0; jj < A_mat.size(); jj++){
@@ -213,7 +214,12 @@ vector<vector<int> > patternMarkers(vector<vector<double> > A_mat,
     for (int jj=0; jj < A_mat[0].size(); jj++){
       // t(Arowmax) is needed bc apply returns pattern x genes,
       // but genes x pattern is what is desired
-      Arowmax[ii][jj] = A_mat[ii][jj]/get_max(A_mat[ii]); 
+      double max_now = get_max(A_mat[ii]);
+      if (max_now == 0){
+        Arowmax[ii][jj] = 0;
+      } else {
+        Arowmax[ii][jj] = A_mat[ii][jj]/get_max(A_mat[ii]);
+      }
     }
   }
   // get maxes
@@ -228,15 +234,25 @@ vector<vector<int> > patternMarkers(vector<vector<double> > A_mat,
   for (int ii=0; ii < Arowmax[0].size(); ii++){
     // vector <double> lp(A_mat[0].size(), 0);
     if (lp_NA){
-      lp[ii] = 1;
+      lp[ii] = 1.0;
     }
     for (int jj=0; jj < Arowmax.size(); jj++){
       vector <double> tmp_A = Arowmax[jj];
       vector <double> vv = vectorDiff(tmp_A, lp);
       sstat[jj][ii] = sqrt(get_dot(vv, vv));
     }
+    if (lp_NA){
+      lp[ii] = 0.0;
+    }
   } // end for loop over number of patterns
 
+  // Rcpp::Rcout << "sstat: " << endl;
+  // for (int ii=0; ii < sstat.size(); ii++){
+  //   for (int jj=0; jj < sstat[0].size(); jj++){
+  //     Rcpp::Rcout << sstat[ii][jj] << "\t";
+  //   }
+  //   Rcpp::Rcout << "\n";
+  // }
 
   /* "threshold" and "unique" are related in that "unique" can be
      thought of as generating a 0/1 valued matrix with only 1 non-zero

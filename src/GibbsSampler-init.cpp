@@ -115,9 +115,9 @@ void GibbsSampler::init_AAtomicdomain_and_PAtomicdomain(vector<vector<double> > 
 }
 
 void GibbsSampler::init_pump_mat(){
-  vector<vector<int> > pump_mat(_nRow, vector<int>(_nSample));
+  vector<vector<int> > pump_mat(_nRow, vector<int>(_nFactor));
   for (int ii=0; ii < _nRow; ii++){
-    for (int jj=0; jj < _nSample; jj++){
+    for (int jj=0; jj < _nFactor; jj++){
       pump_mat[ii][jj] = 0;
     }
   }

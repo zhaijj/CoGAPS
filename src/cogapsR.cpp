@@ -323,7 +323,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
     Rcpp::NumericVector nASamp(nSample);
     Rcpp::NumericVector nPEquil(nEquil);
     Rcpp::NumericVector nPSamp(nSample);
-
+    Rcpp::Rcout << "Not Yet 4" << endl;
     for (unsigned long ext_iter = 1; ext_iter <= nEquil; ++ext_iter) {
         GibbsSamp.set_iter(ext_iter);
         GibbsSamp.set_AnnealingTemperature();
@@ -462,7 +462,7 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
         nIterP = (unsigned long) randgen('P', max((double) GibbsSamp.getTotNumAtoms('P'), 10.));
         // --------------------------------------------
     }  // end of for-block for Sampling
-
+    
     // ===========================================================================
     // Part 4) Calculate statistics:
     // In this final section, we calculate all statistics pertaining to the final
@@ -520,12 +520,9 @@ Rcpp::List cogaps(Rcpp::DataFrame DFrame, Rcpp::DataFrame SFrame, Rcpp::DataFram
     vector <vector<int> > pump_mat = GibbsSamp.get_pump_mat();
     vector<vector <double> > pump_stats(pump_mat.size(), vector<double>(pump_mat[0].size()));
 
-    for (int ii=0; ii < mean_pattern.size(); ii++){
-      for(int jj=0; jj < mean_pattern[0].size(); jj++){
-        if (mean_pattern[ii][jj] == 0){
-          break;
-        }
-        pump_stats[ii][jj] = pump_mat[ii][jj] / (double) nSample;
+    for (int ii=0; ii < pump_mat.size(); ii++){
+      for(int jj=0; jj < pump_mat[0].size(); jj++){
+        pump_stats[ii][jj] = (double) pump_mat[ii][jj] / (double) nSample;
       }
     }
 
