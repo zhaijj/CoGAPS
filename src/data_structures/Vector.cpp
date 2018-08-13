@@ -1,4 +1,6 @@
 #include "Vector.h"
+#include <list>
+#include <algorithm>
 
 Vector::Vector(const std::vector<float> &v) : mValues(v.size())
 {
@@ -76,4 +78,35 @@ Archive& operator>>(Archive &ar, Vector &vec)
         ar >> vec.mValues[i];
     }
     return ar;
+}
+
+
+SparseVector::SparseVector(const std::vector<float> &v)
+{
+    std::list<unsigned> indices;
+    std::list<float> values;
+    for (unsigned i = 0; i < v.size(); ++i)
+    {
+	if (v[i] != 0)
+	{
+	    indices.push_back(i);
+	    values.push_back(v[i]);
+        }
+    }
+    
+    mIndices(std::begin(indices), std::end(indices));
+    mValues(std::begin(values), std::end(values));
+}
+
+float& SparseVector::operator[](unsigned i)
+{
+    vector<unsigned>::iterator it = std::find(mIndices.begin(), mIndices.end(), i);
+    if (it != mIndices.end())
+    {
+	return mValues[*it];
+    }
+    else
+    {
+	return -1; //should be throw error
+    }
 }

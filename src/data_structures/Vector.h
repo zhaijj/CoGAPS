@@ -43,4 +43,29 @@ public:
     friend Archive& operator>>(Archive &ar, Vector &vec);
 };
 
+
+Class SparseVector
+{
+private:
+    
+    aligned_vector mIndices;
+    aligned_vector mValues;
+
+public:
+    explicit SparseVector(unsigned size) : mValues(aligned_vector(size, 0.f)),
+	mIndices(std::vector<unsigned>(size)){}
+    explicit SparseVector(const std::vector<float> &v);
+
+    unsigned size() const {return mValues.size();}
+
+    float* ptr() {return &mValues[0];}
+    const float* ptr() const {return &mValues[0];}
+
+    float& operator[](unsigned i);
+    float operator[](unsigned i) const;
+    
+    //friend Archive& operator<<(Archive &ar, Vector &vec);
+    //friend Archive& operator>>(Archive &ar, Vector &vec);
+};
+
 #endif
