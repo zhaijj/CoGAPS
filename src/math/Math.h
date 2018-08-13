@@ -18,6 +18,22 @@ namespace gaps
     unsigned max(unsigned a, unsigned b);
     uint64_t max(uint64_t a, uint64_t b);
 
+    float dgamma(float d, float shape, float scale); // pdf
+    float pgamma(float p, float shape, float scale); // cdf
+    float qgamma(float q, float shape, float scale); // quantile/inverse cdf
+
+    float dnorm(float d, float mean, float sd); // pdf
+    float pnorm(float p, float mean, float sd); // cdf
+    float qnorm(float q, float mean, float sd); // quantile/inverse cdf
+
+    float dgamma_fast(float d, float shape, float scale);
+    float pgamma_fast(float p, float shape, float scale);
+    float qgamma_fast(float q, float shape, float scale);
+
+    float dnorm_fast(float d, float mean, float sd);
+    float pnorm_fast(float p, float mean, float sd);
+    float qnorm_fast(float q, float mean, float sd);
+
     template <class T>
     std::string to_string(T a);
 }

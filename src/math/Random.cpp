@@ -1,187 +1,167 @@
-// [[Rcpp::depends(BH)]]
-
 #include "Random.h"
-#include "../GapsAssert.h"
 
-// TODO remove boost dependency
-// TODO make concurrent random generation safe
-// spawn a random generator for each thread
-// - no way to acheive consistent results across different nThreads
-
-
-#include <boost/math/distributions/exponential.hpp>
-#include <boost/math/distributions/gamma.hpp>
-#include <boost/math/distributions/normal.hpp>
-
-#include <boost/random/exponential_distribution.hpp>
-#include <boost/random/mersenne_twister.hpp>
-#include <boost/random/normal_distribution.hpp>
-#include <boost/random/poisson_distribution.hpp>
-#include <boost/random/uniform_01.hpp>
-#include <boost/random/uniform_real_distribution.hpp>
-
-#include <algorithm>
 #include <stdint.h>
 
-#ifdef __GAPS_OPENMP__
-    #include <omp.h>
-#else
-    typedef int omp_int_t;
-    inline omp_int_t omp_get_thread_num() { return 0; }
-    inline omp_int_t omp_get_max_threads() { return 1; }
-#endif
+static Xoroshiro128plus seeder;
 
-#define Q_GAMMA_THRESHOLD 0.000001f
-#define Q_GAMMA_MIN_VALUE 0.0
-
-//typedef boost::random::mt19937 RNGType;
-typedef boost::random::mt11213b RNGType; // should be faster
-
-static std::vector<RNGType>& rng()
+static uint64_t rotl(const uint64_t x, int k)
 {
-    static std::vector<RNGType> allRngs(omp_get_max_threads());
-    return allRngs;
+    return (x << k) | (x >> (64 - k));
+}
+
+void gaps::random::seed(uint64_t seed)
+{
+    seeder.seed(seed);
 }
 
 void gaps::random::save(Archive &ar)
 {
-    for (unsigned i = 0; i < rng().size(); ++i)
-    {
-        ar << rng().at(i);
-    }
+    ar << seeder;
 }
 
 void gaps::random::load(Archive &ar)
 {
-    for (unsigned i = 0; i < rng().size(); ++i)
+    ar >> seeder;
+}
+
+void Xoroshiro128plus::seed(uint64_t seed)
+{
+    mState[0] = seed|1;
+    mState[1] = seed|1;
+    warmup();
+}
+
+uint64_t Xoroshiro128plus::next()
+{
+    const uint64_t s0 = mState[0];
+    uint64_t s1 = mState[1];
+    const uint64_t result = s0 + s1;
+    s1 ^= s0;
+    s[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16); // a, b
+    s[1] = rotl(s1, 37); // c
+    return result;
+}
+
+void Xoroshiro128plus::warmup()
+{
+    for (unsigned i = 0; i < 5000; ++i)
     {
-        ar >> rng().at(i);
+        next();
     }
 }
 
-void gaps::random::setSeed(uint32_t seed)
+Archive& operator<<(Archive &ar, Xoroshiro128plus &gen)
 {
-    unsigned n = omp_get_max_threads();
+    ar << gen.mState[0] << gen.mState[1];
+    return ar;
+}
 
-    rng().at(0).seed(seed);
+Archive& operator>>(Archive &ar, Xoroshiro128plus &gen)
+{
+    ar >> gen.mState[0] >> gen.mState[1];
+    return ar;
+}
 
-    boost::random::uniform_int_distribution<uint32_t> seedDist(0,
-        std::numeric_limits<uint32_t>::max());
+GapsRng::GapsRng() : mState(seeder.next()) {}
 
-    for (unsigned i = 1; i < n; ++i)
+uint32_t GapsRng::next()
+{
+    advance();
+    return get();
+}
+
+void GapsRng::advance()
+{
+    mState = mState * 6364136223846793005ULL + (54u|1);
+}
+
+uint32_t GapsRng::get() const
+{
+    uint32_t xorshifted = ((mState >> 18u) ^ mState) >> 27u;
+    uint32_t rot = mState >> 59u;
+    return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
+}
+
+float GapsRng::uniform()
+{
+    return uniform32() / std::numeric_limits<uint32_t>::max();
+}
+
+float GapsRng::uniform(float a, float b)
+{
+    return uniform() * (b - a) + a;
+}
+
+uint32_t GapsRng::uniform32()
+{
+    return next();
+}
+
+uint32_t GapsRng::uniform32(uint32_t a, uint32_t b)
+{
+    uint32_t x = uniform32();
+    uint32_t range = b - a;
+    uint32_t iPart = std::numeric_limits<uint32_t>::max() / range;
+    while (x >= range * iPart)
     {
-        uint32_t newSeed = seedDist(rng().at(i-1));
-        rng().at(i).seed(newSeed);
+        x = uniform32();
     }
+    return x / iPart + a;
 }
 
-float gaps::random::normal(float mean, float var)
+uint64_t GapsRng::uniform64()
 {
-    boost::random::normal_distribution<float> dist(mean, var);
-    return dist(rng().at(omp_get_thread_num()));
+    uint64_t high = uniform32() << 32 & 0xFFFFFFFF000000000ul;
+    uint64_t low = uniform32();
+    return high | low;
 }
 
-int gaps::random::poisson(float lambda)
+uint64_t GapsRng::uniform64(uint64_t a, uint64_t b)
 {
-    boost::random::poisson_distribution<> dist(lambda);
-    return dist(rng().at(omp_get_thread_num()));
-}
-
-float gaps::random::exponential(float lambda)
-{
-    boost::random::exponential_distribution<> dist(lambda);
-    return dist(rng().at(omp_get_thread_num()));
-}
-
-float gaps::random::uniform()
-{
-    boost::random::uniform_01<RNGType&> u01_dist(rng().at(omp_get_thread_num()));
-    return u01_dist();
-}
-
-float gaps::random::uniform(float a, float b)
-{
-    if (a == b)
+    uint64_t x = uniform32();
+    uint64_t range = b - a;
+    uint64_t iPart = std::numeric_limits<uint64_t>::max() / range;
+    while (x >= range * iPart)
     {
-        return a;
+        x = uniform64();
     }
-    boost::random::uniform_real_distribution<> dist(a,b);
-    return dist(rng().at(omp_get_thread_num()));
+    return x / iPart + a;
 }
 
-uint64_t gaps::random::uniform64()
+int GapsRng::poisson(float lambda)
 {
-    boost::random::uniform_int_distribution<uint64_t> dist(0,
-        std::numeric_limits<uint64_t>::max());
-    return dist(rng().at(omp_get_thread_num()));
-}
-
-uint64_t gaps::random::uniform64(uint64_t a, uint64_t b)
-{
-    if (a == b)
+    int x = 0;
+    float p = uniform();
+    while (p >= std::exp(-lambda))
     {
-        return a;
+        p *= uniform();
+        ++x;
     }
-    boost::random::uniform_int_distribution<uint64_t> dist(a,b);
-    return dist(rng().at(omp_get_thread_num()));
+    return x;        
 }
 
-float gaps::random::d_gamma(float d, float shape, float scale)
+float GapsRng::exponential(float lambda)
 {
-    boost::math::gamma_distribution<> gam(shape, scale);
-    return pdf(gam, d);
+    return -1.f * std::log(uniform()) / lambda;
 }
 
-float gaps::random::p_gamma(float p, float shape, float scale)
-{
-    boost::math::gamma_distribution<> gam(shape, scale);
-    return cdf(gam, p);
-}
 
-float gaps::random::q_gamma(float q, float shape, float scale)
+float GapsRng::inverseNormSample(float a, float b, float mean, float sd)
 {
-    if (q < Q_GAMMA_THRESHOLD)
-    {
-        return Q_GAMMA_MIN_VALUE;
-    }
-    boost::math::gamma_distribution<> gam(shape, scale);
-    return quantile(gam, q);
-}
-
-float gaps::random::d_norm(float d, float mean, float sd)
-{
-    boost::math::normal_distribution<> norm(mean, sd);
-    return pdf(norm, d);
-}
-
-float gaps::random::q_norm(float q, float mean, float sd)
-{
-    boost::math::normal_distribution<> norm(mean, sd);
-    return quantile(norm, q);
-}
-
-float gaps::random::p_norm(float p, float mean, float sd)
-{
-    boost::math::normal_distribution<> norm(mean, sd);
-    return cdf(norm, p);
-}
-
-float gaps::random::inverseNormSample(float a, float b, float mean, float sd)
-{
-    float u = gaps::random::uniform(a, b);
+    float u = uniform(a, b);
     while (u == 0.f || u == 1.f)
     {
-        u = gaps::random::uniform(a, b);
+        u = uniform(a, b);
     }
-    return gaps::random::q_norm(u, mean, sd);
+    return gaps::qnorm(u, mean, sd);
 }
 
-float gaps::random::inverseGammaSample(float a, float b, float mean, float sd)
+float GapsRng::inverseGammaSample(float a, float b, float mean, float sd)
 {
-    float u = gaps::random::uniform(a, b);
+    float u = uniform(a, b);
     while (u == 0.f || u == 1.f)
     {
-        u = gaps::random::uniform(a, b);
+        u = uniform(a, b);
     }
-    return gaps::random::q_gamma(u, mean, sd);
+    return gaps::qgamma(u, mean, sd);
 }

@@ -5,8 +5,6 @@
 #include "AtomicDomain.h"
 #include "data_structures/EfficientSets.h"
 
-#include <boost/unordered_set.hpp>
-
 #include <cstddef>
 #include <stdint.h>
 
@@ -17,6 +15,7 @@ struct AtomicProposal
     float mass1;
     uint64_t pos2;
     float mass2;
+    mutable GapsRng rng;
 
     AtomicProposal(char t, uint64_t p1, float m1=0.f, uint64_t p2=0, float m2=0.f)
         : type(t), pos1(p1), mass1(m1), pos2(p2), mass2(m2)
@@ -44,7 +43,9 @@ private:
     bool mUseCachedRng;
     float mU1;
     float mU2;
-
+    
+    GapsRng mRng;
+    
     float deathProb(uint64_t nAtoms) const;
     bool birth(AtomicDomain &domain);
     bool death(AtomicDomain &domain);

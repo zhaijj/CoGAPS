@@ -75,6 +75,8 @@ private:
     mutable unsigned mInsertCacheIndex;
     mutable unsigned mEraseCacheIndex;
 
+    GapsRng mRng;
+
     Atom& _left(const Atom &atom);
     Atom& _right(const Atom &atom);
 
