@@ -98,7 +98,7 @@ private:
     unsigned mNumUpdatesA;
     unsigned mNumUpdatesP;
 
-    GapsRng mRng;
+    mutable GapsRng mRng;
         
     void runOnePhase();
     void updateSampler(unsigned nA, unsigned nP);
@@ -148,8 +148,7 @@ mStatistics(mASampler.dataRows(), mASampler.dataCols(), nPatterns),
 mFixedMatrix('N'), mMaxIterations(1000), mMaxThreads(1), mPrintMessages(true),
 mOutputFrequency(500), mCheckpointOutFile("gaps_checkpoint.out"),
 mCheckpointInterval(0), mPhase('C'), mCurrentIteration(0),
-mNumPatterns(nPatterns), mSeed(0), mNumUpdatesA(0), mNumUpdatesP(0),
-mRng(gaps::random::getRng())
+mNumPatterns(nPatterns), mSeed(0), mNumUpdatesA(0), mNumUpdatesP(0)
 {
     mASampler.sync(mPSampler);
     mPSampler.sync(mASampler);

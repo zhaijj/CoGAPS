@@ -2,17 +2,27 @@
 #define __COGAPS_RANDOM_H__
 
 #include "../Archive.h"
+#include "Math.h"
 
 #include <fstream>
 #include <stdint.h>
 #include <vector>
+
+struct OptionalFloat
+{
+    bool hasValue;
+    float value;
+
+    OptionalFloat() : hasValue(false), value(0.f) {}
+    OptionalFloat(float f) : hasValue(true), value(f) {}
+};
 
 // used for seeding individual rngs
 class Xoroshiro128plus
 {
 public:
 
-    void seed(uint64_t);
+    void seed(uint64_t seed);
     uint64_t next();
 
 private:
@@ -25,6 +35,7 @@ private:
 };
 
 // PCG random number generator
+// This is constructed with a seed pulled from the global seeder
 class GapsRng
 {
 public:
@@ -40,11 +51,16 @@ public:
     uint64_t uniform64();
     uint64_t uniform64(uint64_t a, uint64_t b);
 
-    int poisson(float lambda);
+    int poisson(double lambda);
     float exponential(float lambda);
 
-    float inverseNormSample(float a, float b, float mean, float sd);
-    float inverseGammaSample(float a, float b, float mean, float sd);
+    OptionalFloat truncNormal(float a, float b, float mean, float sd);
+    float truncGammaUpper(float b, float shape, float scale);
+
+    // these functions control the global seed
+    static void setSeed(uint64_t seed);
+    static void save(Archive &ar);
+    static void load(Archive &ar);
    
 private:
 
@@ -53,18 +69,10 @@ private:
     uint32_t next();
     void advance();
     uint32_t get() const;
+
+    double uniformd();
+    int poissonSmall(double lambda);
+    int poissonLarge(double lambda);
 };
-
-namespace gaps
-{
-    namespace random
-    {
-        void setSeed(uint32_t seed);
-        GapsRng getRng();
-
-        void save();
-        void load();
-    }
-}
 
 #endif // __COGAPS_RANDOM_H__

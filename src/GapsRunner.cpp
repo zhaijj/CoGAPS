@@ -245,7 +245,7 @@ void GapsRunner::createCheckpoint()
     
         // create checkpoint file
         Archive ar(mCheckpointOutFile, ARCHIVE_WRITE);
-        gaps::random::save(ar);
+        GapsRng::save(ar);
         ar << mNumPatterns << mSeed << mASampler << mPSampler << mStatistics
             << mFixedMatrix << mMaxIterations << mPhase << mCurrentIteration
             << mNumUpdatesA << mNumUpdatesP;

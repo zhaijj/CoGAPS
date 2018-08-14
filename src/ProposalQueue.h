@@ -44,7 +44,7 @@ private:
     float mU1;
     float mU2;
     
-    GapsRng mRng;
+    mutable GapsRng mRng;
     
     float deathProb(uint64_t nAtoms) const;
     bool birth(AtomicDomain &domain);

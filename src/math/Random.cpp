@@ -1,6 +1,10 @@
+#include "Math.h"
 #include "Random.h"
 
 #include <stdint.h>
+
+const float maxU32AsFloat = static_cast<float>(std::numeric_limits<uint32_t>::max());
+const double maxU32AsDouble = static_cast<double>(std::numeric_limits<uint32_t>::max());
 
 static Xoroshiro128plus seeder;
 
@@ -9,17 +13,17 @@ static uint64_t rotl(const uint64_t x, int k)
     return (x << k) | (x >> (64 - k));
 }
 
-void gaps::random::seed(uint64_t seed)
+void GapsRng::setSeed(uint64_t seed)
 {
     seeder.seed(seed);
 }
 
-void gaps::random::save(Archive &ar)
+void GapsRng::save(Archive &ar)
 {
     ar << seeder;
 }
 
-void gaps::random::load(Archive &ar)
+void GapsRng::load(Archive &ar)
 {
     ar >> seeder;
 }
@@ -33,12 +37,16 @@ void Xoroshiro128plus::seed(uint64_t seed)
 
 uint64_t Xoroshiro128plus::next()
 {
-    const uint64_t s0 = mState[0];
-    uint64_t s1 = mState[1];
-    const uint64_t result = s0 + s1;
-    s1 ^= s0;
-    s[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16); // a, b
-    s[1] = rotl(s1, 37); // c
+    uint64_t result = 0;
+    #pragma omp critical(RngCreation)
+    {
+        const uint64_t s0 = mState[0];
+        uint64_t s1 = mState[1];
+        result = s0 + s1;
+        s1 ^= s0;
+        mState[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16); // a, b
+        mState[1] = rotl(s1, 37); // c
+    }
     return result;
 }
 
@@ -72,7 +80,7 @@ uint32_t GapsRng::next()
 
 void GapsRng::advance()
 {
-    mState = mState * 6364136223846793005ULL + (54u|1);
+    mState = mState * 6364136223846793005ull + (54u|1);
 }
 
 uint32_t GapsRng::get() const
@@ -82,9 +90,14 @@ uint32_t GapsRng::get() const
     return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
 }
 
+double GapsRng::uniformd()
+{
+    return static_cast<double>(uniform32()) / maxU32AsDouble;
+}
+
 float GapsRng::uniform()
 {
-    return uniform32() / std::numeric_limits<uint32_t>::max();
+    return static_cast<float>(uniform32()) / maxU32AsFloat;
 }
 
 float GapsRng::uniform(float a, float b)
@@ -99,8 +112,13 @@ uint32_t GapsRng::uniform32()
 
 uint32_t GapsRng::uniform32(uint32_t a, uint32_t b)
 {
-    uint32_t x = uniform32();
     uint32_t range = b - a;
+    if (range == 0)
+    {
+        return a;
+    }
+
+    uint32_t x = uniform32();
     uint32_t iPart = std::numeric_limits<uint32_t>::max() / range;
     while (x >= range * iPart)
     {
@@ -111,15 +129,20 @@ uint32_t GapsRng::uniform32(uint32_t a, uint32_t b)
 
 uint64_t GapsRng::uniform64()
 {
-    uint64_t high = uniform32() << 32 & 0xFFFFFFFF000000000ul;
+    uint64_t high = (static_cast<uint64_t>(uniform32()) << 32) & 0xFFFFFFFF00000000ull;
     uint64_t low = uniform32();
     return high | low;
 }
 
 uint64_t GapsRng::uniform64(uint64_t a, uint64_t b)
 {
-    uint64_t x = uniform32();
     uint64_t range = b - a;
+    if (range == 0)
+    {
+        return a;
+    }
+
+    uint64_t x = uniform64();
     uint64_t iPart = std::numeric_limits<uint64_t>::max() / range;
     while (x >= range * iPart)
     {
@@ -128,16 +151,60 @@ uint64_t GapsRng::uniform64(uint64_t a, uint64_t b)
     return x / iPart + a;
 }
 
-int GapsRng::poisson(float lambda)
+int GapsRng::poisson(double lambda)
+{
+    if (lambda <= 5.0)
+    {
+        return poissonSmall(lambda);
+    }
+    else
+    {
+        return poissonLarge(lambda);
+    }
+}
+
+// lambda <= 5
+int GapsRng::poissonSmall(double lambda)
 {
     int x = 0;
-    float p = uniform();
-    while (p >= std::exp(-lambda))
+    double p = uniformd();
+    double cutoff = std::exp(-lambda);
+    while (p >= cutoff)
     {
-        p *= uniform();
+        p *= uniformd();
         ++x;
     }
-    return x;        
+    return x;
+}
+
+// lambda > 5
+int GapsRng::poissonLarge(double lambda)
+{
+    double c = 0.767 - 3.36 / lambda;
+    double beta = gaps::pi_double / sqrt(3.0 * lambda);
+    double alpha = beta * lambda;
+    double k = std::log(c) - lambda - std::log(beta);
+
+    while(true)
+    {
+        double u = uniformd();
+        double x = (alpha - std::log((1.0 - u) / u)) / beta;
+        double n = floor(x + 0.5);
+        if (n < 0.0)
+        {
+            continue;
+        }
+
+        double v = uniformd();
+        double y = alpha - beta * x;
+        double w = 1.0 + std::exp(y);
+        double lhs = y + std::log(v / (w * w));
+        double rhs = k + n * std::log(lambda) - gaps::lgamma(n+1);
+        if (lhs <= rhs)
+        {
+            return n;
+        }
+    }
 }
 
 float GapsRng::exponential(float lambda)
@@ -146,22 +213,31 @@ float GapsRng::exponential(float lambda)
 }
 
 
-float GapsRng::inverseNormSample(float a, float b, float mean, float sd)
+OptionalFloat GapsRng::truncNormal(float a, float b, float mean, float sd)
 {
-    float u = uniform(a, b);
+    float lower = gaps::pnorm(a, mean, sd);
+    float upper = gaps::pnorm(b, mean, sd);
+
+    if (lower > 0.95f || upper < 0.05f) // too far in tail
+    {
+        return OptionalFloat();
+    }
+
+    float u = uniform(lower, upper);
     while (u == 0.f || u == 1.f)
     {
-        u = uniform(a, b);
+        u = uniform(lower, upper);
     }
     return gaps::qnorm(u, mean, sd);
 }
 
-float GapsRng::inverseGammaSample(float a, float b, float mean, float sd)
+float GapsRng::truncGammaUpper(float b, float shape, float scale)
 {
-    float u = uniform(a, b);
+    float upper = gaps::pgamma(b, shape, scale);
+    float u = uniform(0.f, upper);
     while (u == 0.f || u == 1.f)
     {
-        u = uniform(a, b);
+        u = uniform(0.f, upper);
     }
-    return gaps::qgamma(u, mean, sd);
+    return gaps::qgamma(u, shape, scale);
 }

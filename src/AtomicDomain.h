@@ -2,6 +2,7 @@
 #define __COGAPS_ATOMIC_DOMAIN_H__
 
 #include "Archive.h"
+#include "math/Random.h"
 
 #include <boost/unordered_map.hpp>
 
@@ -75,7 +76,7 @@ private:
     mutable unsigned mInsertCacheIndex;
     mutable unsigned mEraseCacheIndex;
 
-    GapsRng mRng;
+    mutable GapsRng mRng;
 
     Atom& _left(const Atom &atom);
     Atom& _right(const Atom &atom);

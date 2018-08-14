@@ -2,12 +2,17 @@
 
 #define Q_GAMMA_THRESHOLD 0.000001f
 
+#include <boost/math/distributions/normal.hpp>
+#include <boost/math/distributions/exponential.hpp>
+#include <boost/math/distributions/gamma.hpp>
+#include <boost/math/special_functions/gamma.hpp>
+
 float gaps::min(float a, float b)
 {
     return a < b ? a : b;
 }
 
-unsigned gaps::min(unsigned a, unsigned b)
+uint32_t gaps::min(uint32_t a, uint32_t b)
 {
     return a < b ? a : b;
 }
@@ -22,7 +27,7 @@ float gaps::max(float a, float b)
     return a < b ? b : a;
 }
 
-unsigned gaps::max(unsigned a, unsigned b)
+uint32_t gaps::max(uint32_t a, uint32_t b)
 {
     return a < b ? b : a;
 }
@@ -30,6 +35,11 @@ unsigned gaps::max(unsigned a, unsigned b)
 uint64_t gaps::max(uint64_t a, uint64_t b)
 {
     return a < b ? b : a;
+}
+
+double gaps::lgamma(double x)
+{
+    return boost::math::lgamma(x);
 }
 
 float gaps::dgamma(float d, float shape, float scale)

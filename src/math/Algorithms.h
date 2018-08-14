@@ -22,6 +22,13 @@ struct AlphaParameters
         float rsu = su - other.su; // weird
         return AlphaParameters(rs, rsu);
     }
+
+    AlphaParameters operator*(float f) const
+    {
+        float rs = s * f;
+        float rsu = su * f;
+        return AlphaParameters(rs, rsu);
+    }
 };
 
 namespace gaps

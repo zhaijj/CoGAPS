@@ -9,14 +9,17 @@ namespace gaps
 {
     const float epsilon = 1.0e-10f;
     const float pi = 3.14159265358979323846264f;
+    const double pi_double = 3.14159265358979323846264;
 
     float min(float a, float b);
-    unsigned min(unsigned a, unsigned b);
+    uint32_t min(uint32_t a, uint32_t b);
     uint64_t min(uint64_t a, uint64_t b);
 
     float max(float a, float b);
-    unsigned max(unsigned a, unsigned b);
+    uint32_t max(uint32_t a, uint32_t b);
     uint64_t max(uint64_t a, uint64_t b);
+
+    double lgamma(double x);
 
     float dgamma(float d, float shape, float scale); // pdf
     float pgamma(float p, float shape, float scale); // cdf
