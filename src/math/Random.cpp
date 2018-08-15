@@ -1,5 +1,6 @@
 #include "Math.h"
 #include "Random.h"
+#include "../GapsAssert.h"
 
 #include <stdint.h>
 
@@ -215,8 +216,8 @@ float GapsRng::exponential(float lambda)
 
 OptionalFloat GapsRng::truncNormal(float a, float b, float mean, float sd)
 {
-    float lower = gaps::pnorm(a, mean, sd);
-    float upper = gaps::pnorm(b, mean, sd);
+    float lower = gaps::p_norm(a, mean, sd);
+    float upper = gaps::p_norm(b, mean, sd);
 
     if (lower > 0.95f || upper < 0.05f) // too far in tail
     {
@@ -228,16 +229,22 @@ OptionalFloat GapsRng::truncNormal(float a, float b, float mean, float sd)
     {
         u = uniform(lower, upper);
     }
-    return gaps::qnorm(u, mean, sd);
+    float ret = gaps::q_norm(u, mean, sd);
+    GAPS_ASSERT(ret >= a);
+    GAPS_ASSERT(ret <= b);
+    return ret;
 }
 
 float GapsRng::truncGammaUpper(float b, float shape, float scale)
 {
-    float upper = gaps::pgamma(b, shape, scale);
+    float upper = gaps::p_gamma(b, shape, scale);
+    GAPS_ASSERT(upper > 0.f);
     float u = uniform(0.f, upper);
     while (u == 0.f || u == 1.f)
     {
         u = uniform(0.f, upper);
     }
-    return gaps::qgamma(u, shape, scale);
+    float ret = gaps::q_gamma(u, shape, scale);
+    GAPS_ASSERT(ret <= b);
+    return ret;
 }

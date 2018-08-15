@@ -410,11 +410,12 @@ void GibbsSampler<T, MatA, MatB>::birth(const AtomicProposal &proposal)
     {
         mass = proposal.rng.exponential(mLambda);
     }
+    GAPS_ASSERT_MSG(mass < mMaxGibbsMass / mLambda, mass << " " << mLambda);
 
     // accept mass as long as it's non-zero
     if (mass >= gaps::epsilon)
     {
-        addMass(proposal.pos1, proposal.mass1, row, col);
+        addMass(proposal.pos1, mass, row, col);
         mQueue.acceptBirth();
     }
     else
@@ -446,6 +447,7 @@ void GibbsSampler<T, MatA, MatB>::death(const AtomicProposal &proposal)
         if (gMass.hasValue)
         {
             rebirthMass = gMass.value;
+            GAPS_ASSERT_MSG(rebirthMass < mMaxGibbsMass / mLambda, rebirthMass);
         }
     }
 
@@ -476,7 +478,7 @@ void GibbsSampler<T, MatA, MatB>::move(const AtomicProposal &proposal)
     if (r1 != r2 || c1 != c2) // automatically reject if change in same bin
     {
         float deltaLL = impl()->computeDeltaLL(r1, c1, -proposal.mass1,
-            r2, c2, proposal.mass2);
+            r2, c2, proposal.mass1);
         if (deltaLL * mAnnealingTemp > std::log(proposal.rng.uniform()))
         {
             removeMass(proposal.pos1, proposal.mass1, r1, c1);
@@ -520,6 +522,7 @@ void GibbsSampler<T, MatA, MatB>::exchangeMH(const AtomicProposal &proposal,
 unsigned r1, unsigned c1, unsigned r2, unsigned c2)
 {
     float totalMass = proposal.mass1 + proposal.mass2;
+    GAPS_ASSERT(totalMass > 0.f);
     float newMass = proposal.rng.truncGammaUpper(totalMass, 2.f, 1.f / mLambda);
 
     float biggerMass = gaps::max(proposal.mass1, proposal.mass2);
@@ -529,8 +532,8 @@ unsigned r1, unsigned c1, unsigned r2, unsigned c2)
         : proposal.mass2 - newMass;
     float oldMass = 2.f * newMass > totalMass ? biggerMass : smallerMass;
 
-    float pNew = gaps::dgamma(newMass, 2.f, 1.f / mLambda);
-    float pOld = gaps::dgamma(oldMass, 2.f, 1.f / mLambda);
+    float pNew = gaps::d_gamma(newMass, 2.f, 1.f / mLambda);
+    float pOld = gaps::d_gamma(oldMass, 2.f, 1.f / mLambda);
 
     if (pNew != 0.f || pOld == 0.f)
     {
@@ -547,6 +550,7 @@ unsigned r1, unsigned c1, unsigned r2, unsigned c2)
             return;
         }
     }
+    mQueue.rejectDeath();
 }
 
 // helper function for exchange step, updates the atomic domain, matrix, and
@@ -558,6 +562,7 @@ float delta1, unsigned r1, unsigned c1, unsigned r2, unsigned c2)
     float delta2 = -delta1;
     bool death1 = updateAtomMass(proposal.pos1, proposal.mass1, delta1);
     bool death2 = updateAtomMass(proposal.pos2, proposal.mass2, delta2);
+    GAPS_ASSERT(!death1 || !death2);
     
     // delete entire atom if resize would make it too small
     if (death1) { delta1 = -proposal.mass1; }
