@@ -11,7 +11,7 @@ struct AlphaParameters
 {
     float s;
     float su;
-    
+
     AlphaParameters(float inS, float inSU)
         : s(inS), su(inSU)
     {}
@@ -29,8 +29,8 @@ namespace gaps
 namespace algo
 {
     bool isVectorZero(const float *vec, unsigned size);
-    
-    // vector algorithms    
+
+    // vector algorithms
     unsigned whichMin(const Vector &vec);
     float sum(const Vector &vec);
     float min(const Vector &vec);
@@ -38,7 +38,7 @@ namespace algo
     float dot(const Vector &A, const Vector &B);
     Vector rank(Vector vec);
     Vector elementSq(Vector vec);
-    
+
     // generic matrix algorithms
     template<class GenericMatrix>
     float sum(const GenericMatrix &mat);
@@ -73,6 +73,20 @@ namespace algo
     float deltaLL(unsigned size, const float *D, const float *S,
         const float *AP, const float *mat1, float delta1, const float *mat2,
         float delta2);
+
+    AlphaParameters alphaParameters(unsigned size, const SparseVector &D,
+        const SparseVector &S, const SparseVector &AP, const SparseVector &mat);
+
+    AlphaParameters alphaParameters(unsigned size, const SparseVector &D,
+        const SparseVector &S, const SparseVector &AP, const SparseVector &mat1,
+        const SparseVector &mat2);
+
+    float deltaLL(unsigned size, const SparseVector &D, const SparseVector &S,
+        const SparseVector &AP, const SparseVector &mat, float delta);
+
+    float deltaLL(unsigned size, const SparseVector &D, const SparseVector &S,
+        const SparseVector &AP, const SparseVector &mat1, float delta1,
+        const SparseVector &mat2, float delta2);
 
 } // namespace algo
 } // namespace gaps

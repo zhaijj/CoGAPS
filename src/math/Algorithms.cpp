@@ -67,7 +67,7 @@ Vector gaps::algo::rank(Vector vec)
     {
         sortVec[i] = std::pair<float, float>(vec[i], i);
     }
-    
+
     std::sort(sortVec.begin(), sortVec.end());
     Vector ranks(vec.size());
     for (unsigned i = 0; i < vec.size(); ++i)
@@ -97,7 +97,7 @@ bool gaps::algo::isVectorZero(const float *vec, unsigned size)
     }
     return true;
 }
-    
+
 AlphaParameters gaps::algo::alphaParameters(unsigned size, const float *D,
 const float *S, const float *AP, const float *mat)
 {
@@ -105,7 +105,7 @@ const float *S, const float *AP, const float *mat)
     gaps::simd::packedFloat partialS(0.f), partialSU(0.f);
     gaps::simd::Index i(0);
     for (; i <= size - i.increment(); ++i)
-    {   
+    {
         pMat.load(mat + i);
         pD.load(D + i);
         pAP.load(AP + i);
@@ -124,6 +124,19 @@ const float *S, const float *AP, const float *mat)
     return AlphaParameters(s,su);
 }
 
+AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D,
+    const SparseVector &S, const SparseVector &AP, const SparseVector &mat)
+{
+    float ratio, s = 0.0; su = 0.0;
+    for (unsigned i = 0; i < size; ++i)
+    {
+        ratio = mat[i] / S[i];
+        s += ratio * ratio;
+        su += (ratio * (D[i] - AP[i])) / S[i];
+    }
+    return AlphaParameters(s,su);
+}
+
 //
 AlphaParameters gaps::algo::alphaParameters(unsigned size, const float *D,
 const float *S, const float *AP, const float *mat1, const float *mat2)
@@ -132,7 +145,7 @@ const float *S, const float *AP, const float *mat1, const float *mat2)
     gaps::simd::packedFloat partialS(0.f), partialSU(0.f);
     gaps::simd::Index i(0);
     for (; i <= size - i.increment(); ++i)
-    {   
+    {
         pMat1.load(mat1 + i);
         pMat2.load(mat2 + i);
         pD.load(D + i);
@@ -153,6 +166,20 @@ const float *S, const float *AP, const float *mat1, const float *mat2)
     return AlphaParameters(s,su);
 }
 
+AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D,
+    const SparseVector &S, const SparseVector &AP, const SparseVector &mat1,
+    const SparseVector &mat2)
+{
+    float ratio, s = 0.0; su = 0.0;
+    for (unsigned i = 0; i < size; ++i)
+    {
+        ratio = (mat1[i] - mat2[i]) / S[i];
+        s += ratio * ratio;
+        su += (ratio * (D[i] - AP[i])) / S[i];
+    }
+    return AlphaParameters(s,su);
+}
+
 float gaps::algo::deltaLL(unsigned size, const float *D, const float *S,
 const float *AP, const float *mat, float delta)
 {
@@ -160,7 +187,7 @@ const float *AP, const float *mat, float delta)
     gaps::simd::packedFloat d, pMat, pD, pAP, pS, partialSum(0.f);
     gaps::simd::Index i(0);
     for (; i <= size - i.increment(); ++i)
-    {   
+    {
         pMat.load(mat + i);
         pD.load(D + i);
         pAP.load(AP + i);
@@ -177,6 +204,17 @@ const float *AP, const float *mat, float delta)
     return delLL;
 }
 
+float gaps::algo::deltaLL(unsigned size, const SparseVector &D, const SparseVector &S, const SparseVector &AP, const SparseVector &mat, float delta)
+{
+
+    for (unsigned i = 0; i < size; ++i)
+    {
+        d = delta * mat[i];
+        delLL += (d * (2.f * (D[i] - AP[i]) - d)) / (2.f * S[i] * S[i]);
+    }
+    return delLL;
+}
+
 float gaps::algo::deltaLL(unsigned size, const float *D, const float *S,
 const float *AP, const float *mat1, float delta1, const float *mat2,
 float delta2)
@@ -185,7 +223,7 @@ float delta2)
     gaps::simd::packedFloat d, pMat1, pMat2, pD, pAP, pS, partialSum(0.f);
     gaps::simd::Index i(0);
     for (; i <= size - i.increment(); ++i)
-    {   
+    {
         pMat1.load(mat1 + i);
         pMat2.load(mat2 + i);
         pD.load(D + i);
@@ -199,6 +237,17 @@ float delta2)
     {
         fd = delta1 * mat1[j] + delta2 * mat2[j];
         delLL += (fd * (2.f * (D[j] - AP[j]) - fd)) / (2.f * S[j] * S[j]);
+    }
+    return delLL;
+}
+
+float gaps::algo::deltaLL(unsigned size, const SparseVector &D, const           SparseVector &S, const SparseVector &AP, const SparseVector &mat1, float delta1,
+const SparseVector &mat2, float delta2)
+{
+    for (unsigned i = 0; i < size; ++i)
+    {
+        d = delta1 * mat1[i] + delta2 * mat2[i];
+        delLL += (d * (2.f * (D[i] - AP[i]) - d)) / (2.f * S[i] * S[i]);
     }
     return delLL;
 }
