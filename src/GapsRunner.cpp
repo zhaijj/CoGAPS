@@ -137,8 +137,8 @@ void GapsRunner::runOnePhase()
         }
     
         // number of updates per iteration is poisson 
-        unsigned nA = gaps::random::poisson(gaps::max(mASampler.nAtoms(), 10));
-        unsigned nP = gaps::random::poisson(gaps::max(mPSampler.nAtoms(), 10));
+        unsigned nA = mRng.poisson(gaps::max(mASampler.nAtoms(), 10));
+        unsigned nP = mRng.poisson(gaps::max(mPSampler.nAtoms(), 10));
         updateSampler(nA, nP);
 
         if (mPhase == 'S')
@@ -245,10 +245,10 @@ void GapsRunner::createCheckpoint()
     
         // create checkpoint file
         Archive ar(mCheckpointOutFile, ARCHIVE_WRITE);
-        gaps::random::save(ar);
+        GapsRng::save(ar);
         ar << mNumPatterns << mSeed << mASampler << mPSampler << mStatistics
             << mFixedMatrix << mMaxIterations << mPhase << mCurrentIteration
-            << mNumUpdatesA << mNumUpdatesP;
+            << mNumUpdatesA << mNumUpdatesP << mRng;
         ar.close();
 
         // delete backup file
@@ -261,6 +261,7 @@ Archive& operator>>(Archive &ar, GapsRunner &gr)
 {
     ar >> gr.mNumPatterns >> gr.mSeed >> gr.mASampler >> gr.mPSampler
         >> gr.mStatistics >> gr.mFixedMatrix >> gr.mMaxIterations >> gr.mPhase
-        >> gr.mCurrentIteration >> gr.mNumUpdatesA >> gr.mNumUpdatesP;
+        >> gr.mCurrentIteration >> gr.mNumUpdatesA >> gr.mNumUpdatesP
+        >> gr.mRng;
     return ar;
 }

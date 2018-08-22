@@ -14,7 +14,7 @@ Atom AtomicDomain::front() const
 // O(1)
 Atom AtomicDomain::randomAtom() const
 {
-    uint64_t ndx = gaps::random::uniform64(0, mAtoms.size() - 1);
+    uint64_t ndx = mRng.uniform64(0, mAtoms.size() - 1);
     return mAtoms[ndx];
 }
 
@@ -24,7 +24,7 @@ uint64_t AtomicDomain::randomFreePosition() const
     uint64_t pos = 0;
     do
     {
-        pos = gaps::random::uniform64(0, mDomainSize);
+        pos = mRng.uniform64(0, mDomainSize);
     } while (mPositionLookup.count(pos) > 0);
     return pos;
 }
@@ -216,7 +216,7 @@ Archive& operator>>(Archive &ar, Atom &a)
 Archive& operator<<(Archive &ar, AtomicDomain &domain)
 {
     unsigned nAtoms = domain.mAtoms.size();
-    ar << nAtoms << domain.mDomainSize;
+    ar << nAtoms << domain.mDomainSize << domain.mRng;
 
     for (unsigned i = 0; i < nAtoms; ++i)
     {
@@ -228,7 +228,7 @@ Archive& operator<<(Archive &ar, AtomicDomain &domain)
 Archive& operator>>(Archive &ar, AtomicDomain &domain)
 {
     unsigned nAtoms = 0;
-    ar >> nAtoms >> domain.mDomainSize;
+    ar >> nAtoms >> domain.mDomainSize >> domain.mRng;
 
     Atom a(0, 0.f);
     for (unsigned i = 0; i < nAtoms; ++i)
