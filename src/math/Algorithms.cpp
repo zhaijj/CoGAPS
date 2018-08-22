@@ -127,7 +127,7 @@ const float *S, const float *AP, const float *mat)
 AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D,
     const SparseVector &S, const SparseVector &AP, const SparseVector &mat)
 {
-    float ratio, s = 0.0; su = 0.0;
+    float ratio, s = 0.0, su = 0.0;
     for (unsigned i = 0; i < size; ++i)
     {
         ratio = mat[i] / S[i];
@@ -170,7 +170,7 @@ AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D
     const SparseVector &S, const SparseVector &AP, const SparseVector &mat1,
     const SparseVector &mat2)
 {
-    float ratio, s = 0.0; su = 0.0;
+    float ratio, s = 0.0, su = 0.0;
     for (unsigned i = 0; i < size; ++i)
     {
         ratio = (mat1[i] - mat2[i]) / S[i];
@@ -206,7 +206,7 @@ const float *AP, const float *mat, float delta)
 
 float gaps::algo::deltaLL(unsigned size, const SparseVector &D, const SparseVector &S, const SparseVector &AP, const SparseVector &mat, float delta)
 {
-
+    float d, delLL = 0;
     for (unsigned i = 0; i < size; ++i)
     {
         d = delta * mat[i];
@@ -244,6 +244,7 @@ float delta2)
 float gaps::algo::deltaLL(unsigned size, const SparseVector &D, const           SparseVector &S, const SparseVector &AP, const SparseVector &mat1, float delta1,
 const SparseVector &mat2, float delta2)
 {
+    float d, delLL = 0;
     for (unsigned i = 0; i < size; ++i)
     {
         d = delta1 * mat1[i] + delta2 * mat2[i];
