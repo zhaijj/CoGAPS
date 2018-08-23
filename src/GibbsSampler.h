@@ -268,6 +268,7 @@ void GibbsSampler<T, MatA, MatB>::update(unsigned nSteps, unsigned nCores)
 }
 
 template <class T, class MatA, class MatB>
+
 unsigned GibbsSampler<T, MatA, MatB>::dataRows() const
 {
     return mDMatrix.nRow();
@@ -291,44 +292,40 @@ uint64_t GibbsSampler<T, MatA, MatB>::nAtoms() const
     return mDomain.size();
 }
 
-#ifdef GAPS_DEBUG
-template <class T, class MatA, class MatB>
-float GibbsSampler<T, MatA, MatB>::getAvgQueue() const
-{
-    return mAvgQueue;
-}
-
-template <class T, class MatA, class MatB>
-bool GibbsSampler<T, MatA, MatB>::internallyConsistent()
-{
-    return true;
-}
-#endif
-
-template <class T, class MatA, class MatB>
-Archive& operator<<(Archive &ar, GibbsSampler<T, MatA, MatB> &sampler)
-{
-    ar << sampler.mMatrix << sampler.mAPMatrix << sampler.mQueue <<
-        sampler.mDomain << sampler.mLambda << sampler.mMaxGibbsMass <<
-        sampler.mAnnealingTemp << sampler.mNumRows << sampler.mNumCols <<
-        sampler.mBinSize << sampler.mAvgQueue << sampler.mNumQueues;
-    return ar;
-}
-
-template <class T, class MatA, class MatB>
-Archive& operator>>(Archive &ar, GibbsSampler<T, MatA, MatB> &sampler)
-{
-    ar >> sampler.mMatrix >> sampler.mAPMatrix >> sampler.mQueue >>
-        sampler.mDomain >> sampler.mLambda >> sampler.mMaxGibbsMass >>
-        sampler.mAnnealingTemp >> sampler.mNumRows >> sampler.mNumCols >>
-        sampler.mBinSize >> sampler.mAvgQueue >> sampler.mNumQueues;
-    return ar;
-}
-
 template <class T, class MatA, class MatB>
 T* GibbsSampler<T, MatA, MatB>::impl()
 {
     return static_cast<T*>(this);
+}
+
+template <class T, class MatA, class MatB>
+void GibbsSampler<T, MatA, MatB>::update(unsigned nSteps, unsigned nCores)
+{
+    unsigned n = 0;
+    while (n < nSteps)
+    {
+        // populate queue, prepare domain for this queue
+        mQueue.populate(mDomain, nSteps - n);
+        mDomain.resetCache(mQueue.size());
+        n += mQueue.size();
+        
+        // update average queue count
+        #ifdef GAPS_DEBUG
+        mNumQueues += 1.f;
+        mAvgQueue *= (mNumQueues - 1.f) / mNumQueues;
+        mAvgQueue += mQueue.size() / mNumQueues;
+        #endif
+
+        // process all proposed updates
+        #pragma omp parallel for num_threads(nCores)
+        for (unsigned i = 0; i < mQueue.size(); ++i)
+        {
+            processProposal(&mQueue[i]);
+        }
+
+        mDomain.flushCache();
+        mQueue.clear();
+    }
 }
 
 template <class T, class MatA, class MatB>
@@ -399,8 +396,9 @@ void GibbsSampler<T, MatA, MatB>::death(AtomicProposal *prop)
     unsigned col = impl()->getCol(prop->atom1->pos);
 
     // kill off atom
-    mMatrix(row, col) = gaps::max(mMatrix(row, col) - prop->atom1->mass, 0.f);
-    impl()->updateAPMatrix(row, col, -1.f * prop->atom1->mass);
+    float newVal = gaps::max(mMatrix(row, col) - prop->atom1->mass, 0.f);
+    impl()->updateAPMatrix(row, col, newVal - mMatrix(row, col));
+    mMatrix(row, col) = newVal;
 
     // calculate rebirth mass
     float rebirthMass = prop->atom1->mass;
@@ -445,13 +443,13 @@ void GibbsSampler<T, MatA, MatB>::move(AtomicProposal *prop)
         r2, c2, prop->atom1->mass);
     if (deltaLL * mAnnealingTemp > std::log(prop->rng.uniform()))
     {
-        //mDomain.cacheMove(prop->atom1->pos, prop->moveDest, prop->atom1->mass);
-        prop->atom1->pos = prop->moveDest; // temporary for vector domain
+        prop->atom1->pos = prop->moveDest;
 
-        mMatrix(r1, c1) = gaps::max(mMatrix(r1, c1) - prop->atom1->mass, 0.f);
+        float newVal = gaps::max(mMatrix(r1, c1) - prop->atom1->mass, 0.f);
+        impl()->updateAPMatrix(r1, c1, newVal - mMatrix(r1, c1));
+        mMatrix(r1, c1) = newVal;
+
         mMatrix(r2, c2) += prop->atom1->mass;
-
-        impl()->updateAPMatrix(r1, c1, -1.f * prop->atom1->mass);
         impl()->updateAPMatrix(r2, c2, prop->atom1->mass);
     }
 }
@@ -517,6 +515,7 @@ bool GibbsSampler<T, MatA, MatB>::updateAtomMass(Atom *atom, float delta)
 {
     if (atom->mass + delta < gaps::epsilon)
     {
+        DEBUG_PING // want to know if this ever happens
         mDomain.cacheErase(atom->pos);
         mQueue.acceptDeath();
         return false;
@@ -531,12 +530,6 @@ template <class T, class MatA, class MatB>
 void GibbsSampler<T, MatA, MatB>::acceptExchange(AtomicProposal *prop,
 float d1, unsigned r1, unsigned c1, unsigned r2, unsigned c2)
 {
-    // can make this assertion more formal if we customize p/q norm functions
-    // to handle tail situations a certain way
-    GAPS_ASSERT(prop->atom1->mass + d1 > gaps::epsilon);
-    GAPS_ASSERT(prop->atom2->mass - d1 > gaps::epsilon);
-    //d1 = gaps::max(-1.f * (prop->atom1->mass - epsilon), d1);
-
     float d2 = -1.f * d1;
     bool b1 = updateAtomMass(prop->atom1, d1);
     bool b2 = updateAtomMass(prop->atom2, d2);
@@ -551,10 +544,15 @@ float d1, unsigned r1, unsigned c1, unsigned r2, unsigned c2)
         mQueue.rejectDeath();
     }
 
-    mMatrix(r1, c1) += d1;
-    mMatrix(r2, c2) += d2;
-    impl()->updateAPMatrix(r1, c1, d1);
-    impl()->updateAPMatrix(r2, c2, d2);
+    // ensure matrix values don't go negative (truncation error at fault)
+    float v1 = gaps::max(mMatrix(r1, c1) + d1, 0.f);
+    impl()->updateAPMatrix(r1, c1, v1 - mMatrix(r1, c1));
+    mMatrix(r1, c1) = v1;
+
+
+    float v2 = gaps::max(mMatrix(r2, c2) + d2, 0.f);
+    impl()->updateAPMatrix(r2, c2, v2 - mMatrix(r2, c2));
+    mMatrix(r2, c2) = v2;
 }
 
 template <class T, class MatA, class MatB>
@@ -604,4 +602,36 @@ float m1, float m2, GapsRng *rng)
     return std::pair<float, bool>(0.f, false);
 }
 
-#endif
+#ifdef GAPS_DEBUG
+template <class T, class MatA, class MatB>
+float GibbsSampler<T, MatA, MatB>::getAvgQueue() const
+{
+    return mAvgQueue;
+}
+
+template <class T, class MatA, class MatB>
+bool GibbsSampler<T, MatA, MatB>::internallyConsistent()
+{
+    return true;
+}
+#endif // GAPS_DEBUG
+
+template <class T, class MatA, class MatB>
+Archive& operator<<(Archive &ar, GibbsSampler<T, MatA, MatB> &s)
+{
+    ar << s.mMatrix << s.mAPMatrix << s.mQueue << s.mDomain << s.mLambda
+        << s.mMaxGibbsMass << s.mAnnealingTemp << s.mNumRows << s.mNumCols
+        << s.mBinSize << s.mAvgQueue << s.mNumQueues;
+    return ar;
+}
+
+template <class T, class MatA, class MatB>
+Archive& operator>>(Archive &ar, GibbsSampler<T, MatA, MatB> &s)
+{
+    ar >> s.mMatrix >> s.mAPMatrix >> s.mQueue >> s.mDomain >> s.mLambda
+        >> s.mMaxGibbsMass >> s.mAnnealingTemp >> s.mNumRows >> s.mNumCols
+        >> s.mBinSize >> s.mAvgQueue >> s.mNumQueues;
+    return ar;
+}
+
+#endif // __COGAPS_GIBBS_SAMPLER_H__
