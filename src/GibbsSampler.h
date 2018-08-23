@@ -57,6 +57,9 @@ protected:
     float mAvgQueue;
     float mNumQueues;
 
+    GapsRng mProposalRng;
+    GapsRng mRng;
+
     T* impl();
 
     void processProposal(AtomicProposal *prop);
@@ -259,28 +262,8 @@ void GibbsSampler<T, MatA, MatB>::update(unsigned nSteps, unsigned nCores)
     unsigned n = 0;
     while (n < nSteps)
     {
-        // populate queue, prepare domain for this queue
-        //mQueue.populate(mDomain, nSteps - n);
-        mQueue.populate(mDomain, 1);
-        mDomain.resetCache(mQueue.size());
-        n += mQueue.size();
-        
-        // update average queue count
-        #ifdef GAPS_DEBUG
-        mNumQueues += 1.f;
-        mAvgQueue *= (mNumQueues - 1.f) / mNumQueues;
-        mAvgQueue += mQueue.size() / mNumQueues;
-        #endif
-
-        // process all proposed updates
-        #pragma omp parallel for num_threads(nCores)
-        for (unsigned i = 0; i < mQueue.size(); ++i)
-        {
-            processProposal(&mQueue[i]);
-        }
-
-        mDomain.flushCache();
-        mQueue.clear();
+        makeAndProcessProposal();
+        ++n;
     }
 }
 
@@ -349,57 +332,60 @@ T* GibbsSampler<T, MatA, MatB>::impl()
 }
 
 template <class T, class MatA, class MatB>
-void GibbsSampler<T, MatA, MatB>::processProposal(AtomicProposal *prop)
+void GibbsSampler<T, MatA, MatB>::deathProb(uint64_t nAtoms) const
 {
-    unsigned r1 = 0, c1 = 0, r2 = 0, c2 = 0;
-    switch (prop->type)
+    double size = static_cast<double>(mDomainLength);
+    double term1 = (size - static_cast<double>(nAtoms)) / size;
+    double term2 = mAlpha * static_cast<double>(mNumBins) * term1;
+    return static_cast<double>(nAtoms) / (static_cast<double>(nAtoms) + term2);
+}
+
+template <class T, class MatA, class MatB>
+void GibbsSampler<T, MatA, MatB>::makeAndProcessProposal()
+{
+    if (mDomain.size() == 0)
     {
-        case 'B':
-            birth(prop);
-            break;
-        case 'D':
-            death(prop);
-            break;
-        case 'M':
-            move(prop);
-            break;
-        case 'E':
-            exchange(prop);
-            break;
+        return birth();
     }
+
+    float bdProb = mMaxAtoms < 2 ? 0.6667f : 0.5f;
+    float u1 = mProposalRng.uniform();
+    float u2 = mProposalRng.uniform();
+
+    if (u1 <= bdProb)
+    {
+        return u2 < deathProb(mDomain.size()) ? death() : birth();
+    }
+    return (u1 < 0.75f || mDomain.size() < 2) ? move() : exchange();
 }
 
 // add an atom at pos, calculate mass either with an exponential distribution
 // or with the gibbs mass calculation
 template <class T, class MatA, class MatB>
-void GibbsSampler<T, MatA, MatB>::birth(AtomicProposal *prop)
+void GibbsSampler<T, MatA, MatB>::birth()
 {
-    unsigned row = impl()->getRow(prop->birthPos);
-    unsigned col = impl()->getCol(prop->birthPos);
+    uint64_t pos = mDomain.randomFreePosition();
+    unsigned row = impl()->getRow(pos);
+    unsigned col = impl()->getCol(pos);
 
     // calculate proposed mass
     float mass = 0.f;
     if (impl()->canUseGibbs(row, col))
     {
         AlphaParameters alpha = impl()->alphaParameters(row, col);
-        mass = gibbsMass(alpha, &(prop->rng)).first;
+        mass = gibbsMass(alpha, &mRng).first;
     }
     else
     {
-        mass = prop->rng.exponential(mLambda);
+        mass = mRng.exponential(mLambda);
     }
 
     // accept mass as long as it's non-zero
     if (mass >= gaps::epsilon)
     {
-        mDomain.cacheInsert(prop->birthPos, mass);
+        mDomain.cacheInsert(pos, mass);
         mMatrix(row, col) += mass;
         impl()->updateAPMatrix(row, col, mass);
-        mQueue.acceptBirth();
-    }
-    else
-    {
-        mQueue.rejectBirth();
     }
 }
 
