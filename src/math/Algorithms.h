@@ -57,9 +57,8 @@ namespace algo
     RowMatrix matrixMultiplication(const ColMatrix &A, const RowMatrix &B);
 
     // chiSq / 2
-    template <class Matrix>
-    float loglikelihood(const Matrix &D, const Matrix &S,
-        const Matrix &AP);
+    float loglikelihood(const ColMatrix &D, const ColMatrix &S,
+        const ColMatrix &AP);
 
     AlphaParameters alphaParameters(unsigned size, const float *D,
         const float *S, const float *AP, const float *mat);

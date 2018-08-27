@@ -38,20 +38,16 @@ public:
 
     AtomicDomain(uint64_t nBins);
 
-    // access atoms
     Atom* front();
-    Atom* randomAtom();
-    AtomNeighborhood randomAtomWithNeighbors();
-    AtomNeighborhood randomAtomWithRightNeighbor();
+    Atom* randomAtom(GapsRng *rng);
+    AtomNeighborhood randomAtomWithNeighbors(GapsRng *rng);
+    AtomNeighborhood randomAtomWithRightNeighbor(GapsRng *rng);
 
-    uint64_t randomFreePosition() const;
+    uint64_t randomFreePosition(GapsRng *rng) const;
     uint64_t size() const;
 
-    // modify domain
-    void cacheInsert(uint64_t pos, float mass) const;
-    void cacheErase(uint64_t pos) const;
-    void flushCache();
-    void resetCache(unsigned n);
+    void erase(uint64_t pos);
+    void insert(uint64_t pos, float mass);
 
     // serialization
     friend Archive& operator<<(Archive &ar, AtomicDomain &domain);
@@ -74,16 +70,6 @@ private:
     // current index in the operation cache
     mutable unsigned mInsertCacheIndex;
     mutable unsigned mEraseCacheIndex;
-
-    // random number generator
-    mutable GapsRng mRng;
-
-    void erase(uint64_t pos);
-    void insert(uint64_t pos, float mass);
-
-    // serialization
-    friend Archive& operator<<(Archive &ar, AtomicDomain &domain);
-    friend Archive& operator>>(Archive &ar, AtomicDomain &domain);
 };
 
 #endif

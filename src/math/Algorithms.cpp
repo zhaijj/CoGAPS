@@ -114,12 +114,12 @@ const float *S, const float *AP, const float *mat)
         partialS += ratio * ratio;
         partialSU += (ratio * (pD - pAP)) / pS;
     }
-    float fratio, s = partialS.scalar(), su = partialSU.scalar();
+    float term, s = partialS.scalar(), su = partialSU.scalar();
     for (unsigned j = i.value(); j < size; ++j)
     {
-        fratio = mat[j] / S[j]; // can save one division here by dividing by S^2
-        s += fratio * fratio;
-        su += (fratio * (D[j] - AP[j])) / S[j];
+        term = mat[j] / (S[j] * S[j]);
+        s += mat[j] * term;
+        su += term * (D[j] - AP[j]);
     }
     return AlphaParameters(s,su);
 }
@@ -146,9 +146,9 @@ const float *S, const float *AP, const float *mat1, const float *mat2)
     float fratio, s = partialS.scalar(), su = partialSU.scalar();
     for (unsigned j = i.value(); j < size; ++j)
     {
-        fratio = (mat1[j] - mat2[j]) / S[j];
-        s += fratio * fratio;
-        su += fratio * (D[j] - AP[j]) / S[j];
+        term = (mat1[j] - mat2[j]) / (S[j] * S[j]);
+        s += (mat1[j] - mat2[j]) * term;
+        su += term * (D[j] - AP[j]);
     }
     return AlphaParameters(s,su);
 }
