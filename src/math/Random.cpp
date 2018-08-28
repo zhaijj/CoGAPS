@@ -2,7 +2,7 @@
 
 #include "Math.h"
 #include "Random.h"
-#include "../GapsAssert.h"
+#include "../utils/GapsAssert.h"
 
 // TODO remove boost dependency
 
@@ -237,14 +237,17 @@ float GapsRng::inverseNormSample(float a, float b, float mean, float sd)
     return gaps::q_norm(u, mean, sd);
 }
 
-float GapsRng::inverseGammaSample(float a, float b, float mean, float sd)
+float GapsRng::truncGammaUpper(float b, float shape, float scale)
 {
-    float u = uniform(a, b);
+    float upper = gaps::p_gamma(b, shape, scale);
+    float u = uniform(0.f, upper);
     while (u == 0.f || u == 1.f)
     {
-        u = uniform(a, b);
+        u = uniform(0.f, upper);
     }
-    return gaps::q_gamma(u, mean, sd);
+    float ret = gaps::q_gamma(u, shape, scale);
+    GAPS_ASSERT(ret <= b);
+    return ret;
 }
 
 Archive& operator<<(Archive &ar, GapsRng &gen)

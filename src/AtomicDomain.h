@@ -1,7 +1,7 @@
 #ifndef __COGAPS_ATOMIC_DOMAIN_H__
 #define __COGAPS_ATOMIC_DOMAIN_H__
 
-#include "Archive.h"
+#include "utils/Archive.h"
 #include "math/Random.h"
 
 #include <vector>
@@ -62,14 +62,6 @@ private:
 
     // domain storage, sorted vector
     std::vector<Atom> mAtoms;
-
-    // holds cache of operations
-    mutable std::vector<Atom> mInsertCache;
-    mutable std::vector<uint64_t> mEraseCache;
-
-    // current index in the operation cache
-    mutable unsigned mInsertCacheIndex;
-    mutable unsigned mEraseCacheIndex;
 };
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef __COGAPS_RANDOM_H__
 #define __COGAPS_RANDOM_H__
 
-#include "../Archive.h"
+#include "../utils/Archive.h"
 
 #include <fstream>
 #include <stdint.h>
@@ -9,11 +9,25 @@
 
 struct OptionalFloat
 {
-    bool hasValue;
-    float value;
+public:
 
-    OptionalFloat() : hasValue(false), value(0.f) {}
-    OptionalFloat(float f) : hasValue(true), value(f) {}
+    OptionalFloat() : mHasValue(false), mValue(0.f) {}
+    OptionalFloat(float f) : mHasValue(true), mValue(f) {}
+
+    bool hasValue()
+    {
+        return mHasValue;
+    }
+    
+    float value()
+    {
+        return mValue;
+    }
+
+private:
+
+    bool mHasValue;
+    float mValue;
 };
 
 namespace gaps
@@ -66,7 +80,7 @@ public:
     float exponential(float lambda);
 
     float inverseNormSample(float a, float b, float mean, float sd);
-    float inverseGammaSample(float a, float b, float mean, float sd);
+    float truncGammaUpper(float b, float shape, float scale);
 
     static void setSeed(uint64_t seed);
     static void save(Archive &ar);

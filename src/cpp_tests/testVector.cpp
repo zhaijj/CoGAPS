@@ -14,10 +14,4 @@ TEST_CASE("Test Vector.h")
         REQUIRE(v2.size() == 4);
         REQUIRE(v2[0] == 100.f);
     }
-    
-    SECTION("Test Concatenation")
-    {
-        v1.concat(v2);
-        REUQIRE(v1.size() == 104);
-    }
 }

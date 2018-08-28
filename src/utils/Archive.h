@@ -12,7 +12,8 @@
 
 // magic number written to beginning of archive files
 // needs to be updated everytime the method of checkpointing changes
-#define ARCHIVE_MAGIC_NUM 0xCE45D32B // v3.3.22
+//#define ARCHIVE_MAGIC_NUM 0xCE45D32B // v3.3.22
+#define ARCHIVE_MAGIC_NUM 0xBF23A005 // v3.3.30
 
 class Archive
 {
@@ -23,8 +24,7 @@ private:
 public:
 
     Archive(const std::string &path, std::ios_base::openmode flags)
-        :
-    mStream(path.c_str(), std::ios::binary | flags)
+    : mStream(path.c_str(), std::ios::binary | flags)
     {
         if (flags == ARCHIVE_WRITE)
         {

@@ -2,6 +2,7 @@
 #define __COGAPS_ALGORITHMS_H__
 
 #include "../data_structures/Matrix.h"
+#include "Math.h"
 
 #include <cmath>
 
@@ -38,23 +39,20 @@ namespace algo
     float dot(const Vector &A, const Vector &B);
     Vector rank(Vector vec);
     Vector elementSq(Vector vec);
+
+    ColMatrix pmax(const ColMatrix &mat, float factor);
     
     // generic matrix algorithms
-    template<class GenericMatrix>
-    float sum(const GenericMatrix &mat);
-
-    template<class GenericMatrix>
-    float mean(const GenericMatrix &mat);
-
-    template<class GenericMatrix>
-    float nonZeroMean(const GenericMatrix &mat);
-
-    template<class GenericMatrix>
-    GenericMatrix computeStdDev(const GenericMatrix &stdMat,
-        const GenericMatrix &meanMat, unsigned nUpdates);
+    float sum(const ColMatrix &mat);
+    float mean(const ColMatrix &mat);
+    float nonZeroMean(const ColMatrix &mat);
+    ColMatrix computeStdDev(const ColMatrix &stdMat,
+        const ColMatrix &meanMat, unsigned nUpdates);
 
     // specific matrix algorithms
-    RowMatrix matrixMultiplication(const ColMatrix &A, const RowMatrix &B);
+    ColMatrix matrixMultiplication(const ColMatrix &A, const ColMatrix &BT);
+
+    void copyTranspose(ColMatrix *dest, const ColMatrix &src);
 
     // chiSq / 2
     float loglikelihood(const ColMatrix &D, const ColMatrix &S,
@@ -75,77 +73,5 @@ namespace algo
 
 } // namespace algo
 } // namespace gaps
-
-template<class GenericMatrix>
-float gaps::algo::sum(const GenericMatrix &mat)
-{
-    float sum = 0.f;
-    for (unsigned i = 0; i < mat.nRow(); ++i)
-    {
-        for (unsigned j = 0; j < mat.nCol(); ++j)
-        {
-            sum += mat(i,j);
-        }
-    }
-    return sum;
-}
-
-template<class GenericMatrix>
-float gaps::algo::mean(const GenericMatrix &mat)
-{
-    return gaps::algo::sum(mat) / (mat.nRow() * mat.nCol());
-}
-
-template<class GenericMatrix>
-float gaps::algo::nonZeroMean(const GenericMatrix &mat)
-{
-    float sum = 0.f;
-    unsigned nNonZeros = 0;
-    for (unsigned i = 0; i < mat.nRow(); ++i)
-    {
-        for (unsigned j = 0; j < mat.nCol(); ++j)
-        {
-            if (mat(i,j) != 0.f)
-            {
-                nNonZeros++;
-                sum += mat(i,j);
-            }
-        }
-    }
-    return sum / static_cast<float>(nNonZeros);
-}
-
-template<class GenericMatrix>
-GenericMatrix gaps::algo::computeStdDev(const GenericMatrix &stdMat,
-const GenericMatrix &meanMat, unsigned nUpdates)
-{
-    GAPS_ASSERT(nUpdates > 1);
-    GenericMatrix retMat(stdMat.nRow(), stdMat.nCol());
-    for (unsigned r = 0; r < retMat.nRow(); ++r)
-    {
-        for (unsigned c = 0; c < retMat.nCol(); ++c)
-        {
-            float meanTerm = meanMat(r,c) * meanMat(r,c) / static_cast<float>(nUpdates);
-            float numer = gaps::max(0.f, stdMat(r,c) - meanTerm);
-            retMat(r,c) = std::sqrt(numer / (static_cast<float>(nUpdates) - 1.f));
-        }
-    }
-    return retMat;
-}
-
-template <class Matrix>
-float gaps::algo::loglikelihood(const Matrix &D, const Matrix &S,
-const Matrix &AP)
-{
-    float chi2 = 0.f;
-    for (unsigned i = 0; i < D.nRow(); ++i)
-    {
-        for (unsigned j = 0; j < D.nCol(); ++j)
-        {
-            chi2 += GAPS_SQ(D(i,j) - AP(i,j)) / GAPS_SQ(S(i,j));
-        }
-    }
-    return chi2 / 2.f;
-}
 
 #endif

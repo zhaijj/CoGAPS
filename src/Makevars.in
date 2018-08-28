@@ -4,27 +4,28 @@ PKG_LIBS = @GAPS_LIBS@
 
 OBJECTS =   AtomicDomain.o \
             Cogaps.o \
+            GapsResult.o \
             GapsRunner.o \
             GapsStatistics.o \
             GibbsSampler.o \
-            ProposalQueue.o \
             RcppExports.o \
             test-runner.o \
-            data_structures/Matrix.o \
-            data_structures/Vector.o \
-            file_parser/CsvParser.o \
-            file_parser/GctParser.o \
-            file_parser/FileParser.o \
-            file_parser/TsvParser.o \
-            file_parser/MtxParser.o \
-            math/Algorithms.o \
-            math/Math.o \
-            math/Random.o \
             cpp_tests/testAlgorithms.o \
             cpp_tests/testAtomicDomain.o \
             cpp_tests/testEfficientSets.o \
             cpp_tests/testFileParsers.o \
             cpp_tests/testMatrix.o \
             cpp_tests/testRandom.o \
-            cpp_tests/testSerialization.o
+            cpp_tests/testSerialization.o \
+            data_structures/Matrix.o \
+            data_structures/Vector.o \
+            file_parser/CsvParser.o \
+            file_parser/FileParser.o \
+            file_parser/GctParser.o \
+            file_parser/MtxParser.o \
+            file_parser/TsvParser.o \
+            math/Algorithms.o \
+            math/Math.o \
+            math/Random.o \
+            math/SIMD.o
 

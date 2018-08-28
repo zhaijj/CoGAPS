@@ -1,6 +1,6 @@
 #include "TsvParser.h"
-#include "../GapsAssert.h"
 #include "../math/Algorithms.h"
+#include "../utils/GapsAssert.h"
 
 #include <fstream>
 #include <iostream>

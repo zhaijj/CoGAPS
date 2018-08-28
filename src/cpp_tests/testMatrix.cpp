@@ -20,15 +20,10 @@ static void testFullConstructor(float expectedSum, unsigned nr, unsigned nc,
 const DataType &data, bool transpose=false, bool partitionRows=false,
 const std::vector<unsigned> &indices=std::vector<unsigned>(1))
 {
-    RowMatrix rm(data, transpose, partitionRows, indices);
     ColMatrix cm(data, transpose, partitionRows, indices);
 
-    REQUIRE(rm.nRow() == nr);
-    REQUIRE(rm.nCol() == nc);
     REQUIRE(cm.nRow() == nr);
     REQUIRE(cm.nCol() == nc);
-
-    REQUIRE(expectedSum == gaps::algo::sum(rm));
     REQUIRE(expectedSum == gaps::algo::sum(cm));
 }
 
@@ -77,9 +72,6 @@ TEST_CASE("Test Writing/Reading Matrices from File")
     FileParser::writeToMtx("testMatWrite.mtx", ref);
 
     // read matrices from file
-    RowMatrix rmTsv("testMatWrite.tsv", false, false, sequentialVector(1));
-    RowMatrix rmCsv("testMatWrite.csv", false, false, sequentialVector(1));
-    RowMatrix rmMtx("testMatWrite.mtx", false, false, sequentialVector(1));
     ColMatrix cmTsv("testMatWrite.tsv", false, false, sequentialVector(1));
     ColMatrix cmCsv("testMatWrite.csv", false, false, sequentialVector(1));
     ColMatrix cmMtx("testMatWrite.mtx", false, false, sequentialVector(1));
@@ -90,9 +82,6 @@ TEST_CASE("Test Writing/Reading Matrices from File")
     std::remove("testMatWrite.mtx");
 
     // test matrices
-    REQUIRE(gaps::algo::sum(rmTsv) == gaps::algo::sum(ref));
-    REQUIRE(gaps::algo::sum(rmCsv) == gaps::algo::sum(ref));
-    REQUIRE(gaps::algo::sum(rmMtx) == gaps::algo::sum(ref));
     REQUIRE(gaps::algo::sum(cmTsv) == gaps::algo::sum(ref));
     REQUIRE(gaps::algo::sum(cmCsv) == gaps::algo::sum(ref));
     REQUIRE(gaps::algo::sum(cmMtx) == gaps::algo::sum(ref));
@@ -102,28 +91,10 @@ TEST_CASE("Test Matrix.h")
 {
     SECTION("Default Construction")
     {
-        RowMatrix rm(10, 25);
         ColMatrix cm(10, 25);
 
-        REQUIRE(rm.nRow() == 10);
-        REQUIRE(rm.nCol() == 25);
         REQUIRE(cm.nRow() == 10);
         REQUIRE(cm.nCol() == 25);
-    }
-
-    SECTION("Copy Construction")
-    {
-        RowMatrix rm1(10, 25);
-        ColMatrix cm1(rm1);
-
-        REQUIRE(cm1.nRow() == 10);
-        REQUIRE(cm1.nCol() == 25);
-
-        RowMatrix rm2(10, 25);
-        ColMatrix cm2(rm1);
-
-        REQUIRE(rm2.nRow() == 10);
-        REQUIRE(rm2.nCol() == 25);
     }
 
     SECTION("Full Constructor")

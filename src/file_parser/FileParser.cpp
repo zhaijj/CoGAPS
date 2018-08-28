@@ -1,9 +1,9 @@
-#include "../GapsAssert.h"
 #include "CsvParser.h"
 #include "FileParser.h"
 #include "MtxParser.h"
 #include "TsvParser.h"
 #include "GctParser.h"
+#include "../utils/GapsAssert.h"
 
 #include <string>
 

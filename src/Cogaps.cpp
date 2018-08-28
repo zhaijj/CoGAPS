@@ -1,5 +1,5 @@
 #include "GapsRunner.h"
-#include "math/SIMD.h"
+#include "utils/GlobalConfig.h"
 
 #include <Rcpp.h>
 #include <string>
@@ -163,9 +163,9 @@ const Rcpp::Nullable<Rcpp::NumericMatrix> &fixedMatrix, bool isMaster)
     // return R list
     return Rcpp::List::create(
         Rcpp::Named("Amean") = createRMatrix(result.Amean),
-        Rcpp::Named("Pmean") = createRMatrix(result.Pmean, true),
+        Rcpp::Named("Pmean") = createRMatrix(result.Pmean),
         Rcpp::Named("Asd") = createRMatrix(result.Asd),
-        Rcpp::Named("Psd") = createRMatrix(result.Psd, true),
+        Rcpp::Named("Psd") = createRMatrix(result.Psd),
         Rcpp::Named("seed") = runner.getSeed(),
         Rcpp::Named("meanChiSq") = result.meanChiSq,
         Rcpp::Named("geneNames") = allParams["geneNames"],

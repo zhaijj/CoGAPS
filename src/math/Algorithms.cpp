@@ -1,9 +1,82 @@
 #include "Algorithms.h"
 #include "../data_structures/Matrix.h"
-#include "../GapsAssert.h"
+#include "../utils/GapsAssert.h"
 #include "SIMD.h"
 
 #include <algorithm>
+
+float gaps::algo::sum(const ColMatrix &mat)
+{
+    float sum = 0.f;
+    for (unsigned i = 0; i < mat.nRow(); ++i)
+    {
+        for (unsigned j = 0; j < mat.nCol(); ++j)
+        {
+            sum += mat(i,j);
+        }
+    }
+    return sum;
+}
+
+float gaps::algo::mean(const ColMatrix &mat)
+{
+    return gaps::algo::sum(mat) / (mat.nRow() * mat.nCol());
+}
+
+float gaps::algo::nonZeroMean(const ColMatrix &mat)
+{
+    float sum = 0.f;
+    unsigned nNonZeros = 0;
+    for (unsigned i = 0; i < mat.nRow(); ++i)
+    {
+        for (unsigned j = 0; j < mat.nCol(); ++j)
+        {
+            if (mat(i,j) != 0.f)
+            {
+                nNonZeros++;
+                sum += mat(i,j);
+            }
+        }
+    }
+    return sum / static_cast<float>(nNonZeros);
+}
+
+ColMatrix gaps::algo::computeStdDev(const ColMatrix &stdMat,
+const ColMatrix &meanMat, unsigned nUpdates)
+{
+    GAPS_ASSERT(nUpdates > 1);
+    ColMatrix retMat(stdMat.nRow(), stdMat.nCol());
+    for (unsigned r = 0; r < retMat.nRow(); ++r)
+    {
+        for (unsigned c = 0; c < retMat.nCol(); ++c)
+        {
+            float meanTerm = meanMat(r,c) * meanMat(r,c) / static_cast<float>(nUpdates);
+            float numer = gaps::max(0.f, stdMat(r,c) - meanTerm);
+            retMat(r,c) = std::sqrt(numer / (static_cast<float>(nUpdates) - 1.f));
+        }
+    }
+    return retMat;
+}
+
+float gaps::algo::loglikelihood(const ColMatrix &D, const ColMatrix &S,
+const ColMatrix &AP)
+{
+    GAPS_ASSERT_MSG(D.nRow() == S.nRow(), D.nRow() << " " << S.nRow());
+    GAPS_ASSERT_MSG(S.nRow() == AP.nRow(), S.nRow() << " " << AP.nRow());
+    GAPS_ASSERT_MSG(D.nCol() == S.nCol(), D.nCol() << " " << S.nCol());
+    GAPS_ASSERT_MSG(S.nCol() == AP.nCol(), S.nCol() << " " << AP.nCol());
+
+    float chi2 = 0.f;
+    for (unsigned i = 0; i < D.nRow(); ++i)
+    {
+        for (unsigned j = 0; j < D.nCol(); ++j)
+        {
+            GAPS_ASSERT(AP(i,j) > 0.f);
+            chi2 += GAPS_SQ(D(i,j) - AP(i,j)) / GAPS_SQ(S(i,j));
+        }
+    }
+    return chi2 / 2.f;
+}
 
 float gaps::algo::sum(const Vector &vec)
 {
@@ -98,11 +171,35 @@ bool gaps::algo::isVectorZero(const float *vec, unsigned size)
     return true;
 }
     
+ColMatrix gaps::algo::pmax(const ColMatrix &mat, float factor)
+{
+    ColMatrix temp(mat.nRow(), mat.nCol());
+    for (unsigned i = 0; i < mat.nRow(); ++i)
+    {
+        for (unsigned j = 0; j < mat.nCol(); ++j)
+        {
+            temp(i,j) = gaps::max(mat(i,j) * factor, factor);
+        }
+    }
+    return temp;
+}
+
+void gaps::algo::copyTranspose(ColMatrix *dest, const ColMatrix &src)
+{
+    for (unsigned j = 0; j < dest->nCol(); ++j)
+    {
+        for (unsigned i = 0; i < dest->nRow(); ++i)
+        {
+            dest->operator()(i,j) = src(j,i); // TODO test which order is better
+        }
+    }
+}
+
 AlphaParameters gaps::algo::alphaParameters(unsigned size, const float *D,
 const float *S, const float *AP, const float *mat)
 {
-    gaps::simd::packedFloat ratio, pMat, pD, pAP, pS;
-    gaps::simd::packedFloat partialS(0.f), partialSU(0.f);
+    gaps::simd::PackedFloat pMat, pD, pAP, pS;
+    gaps::simd::PackedFloat partialS(0.f), partialSU(0.f);
     gaps::simd::Index i(0);
     for (; i <= size - i.increment(); ++i)
     {   
@@ -110,14 +207,14 @@ const float *S, const float *AP, const float *mat)
         pD.load(D + i);
         pAP.load(AP + i);
         pS.load(S + i);
-        ratio = pMat / pS;
+        gaps::simd::PackedFloat ratio(pMat / pS);
         partialS += ratio * ratio;
         partialSU += (ratio * (pD - pAP)) / pS;
     }
-    float term, s = partialS.scalar(), su = partialSU.scalar();
+    float s = partialS.scalar(), su = partialSU.scalar();
     for (unsigned j = i.value(); j < size; ++j)
     {
-        term = mat[j] / (S[j] * S[j]);
+        float term = mat[j] / (S[j] * S[j]);
         s += mat[j] * term;
         su += term * (D[j] - AP[j]);
     }
@@ -128,8 +225,8 @@ const float *S, const float *AP, const float *mat)
 AlphaParameters gaps::algo::alphaParameters(unsigned size, const float *D,
 const float *S, const float *AP, const float *mat1, const float *mat2)
 {
-    gaps::simd::packedFloat ratio, pMat1, pMat2, pD, pAP, pS;
-    gaps::simd::packedFloat partialS(0.f), partialSU(0.f);
+    gaps::simd::PackedFloat ratio, pMat1, pMat2, pD, pAP, pS;
+    gaps::simd::PackedFloat partialS(0.f), partialSU(0.f);
     gaps::simd::Index i(0);
     for (; i <= size - i.increment(); ++i)
     {   
@@ -143,10 +240,10 @@ const float *S, const float *AP, const float *mat1, const float *mat2)
         partialSU += ratio * (pD - pAP) / pS;
     }
 
-    float fratio, s = partialS.scalar(), su = partialSU.scalar();
+    float s = partialS.scalar(), su = partialSU.scalar();
     for (unsigned j = i.value(); j < size; ++j)
     {
-        term = (mat1[j] - mat2[j]) / (S[j] * S[j]);
+        float term = (mat1[j] - mat2[j]) / (S[j] * S[j]);
         s += (mat1[j] - mat2[j]) * term;
         su += term * (D[j] - AP[j]);
     }
@@ -156,8 +253,8 @@ const float *S, const float *AP, const float *mat1, const float *mat2)
 float gaps::algo::deltaLL(unsigned size, const float *D, const float *S,
 const float *AP, const float *mat, float delta)
 {
-    const gaps::simd::packedFloat pDelta(delta), two(2.f);
-    gaps::simd::packedFloat d, pMat, pD, pAP, pS, partialSum(0.f);
+    const gaps::simd::PackedFloat pDelta(delta), two(2.f);
+    gaps::simd::PackedFloat d, pMat, pD, pAP, pS, partialSum(0.f);
     gaps::simd::Index i(0);
     for (; i <= size - i.increment(); ++i)
     {   
@@ -168,10 +265,10 @@ const float *AP, const float *mat, float delta)
         d = pDelta * pMat;
         partialSum += (d * (two * (pD - pAP) - d)) / (two * pS * pS);
     }
-    float fd, delLL = partialSum.scalar();
+    float delLL = partialSum.scalar();
     for (unsigned j = i.value(); j < size; ++j)
     {
-        fd = delta * mat[j];
+        float fd = delta * mat[j];
         delLL += (fd * (2.f * (D[j] - AP[j]) - fd)) / (2.f * S[j] * S[j]);
     }
     return delLL;
@@ -181,8 +278,8 @@ float gaps::algo::deltaLL(unsigned size, const float *D, const float *S,
 const float *AP, const float *mat1, float delta1, const float *mat2,
 float delta2)
 {
-    const gaps::simd::packedFloat pDelta1(delta1), pDelta2(delta2), two(2.f);
-    gaps::simd::packedFloat d, pMat1, pMat2, pD, pAP, pS, partialSum(0.f);
+    const gaps::simd::PackedFloat pDelta1(delta1), pDelta2(delta2), two(2.f);
+    gaps::simd::PackedFloat d, pMat1, pMat2, pD, pAP, pS, partialSum(0.f);
     gaps::simd::Index i(0);
     for (; i <= size - i.increment(); ++i)
     {   
@@ -194,31 +291,31 @@ float delta2)
         d = pDelta1 * pMat1 + pDelta2 * pMat2;
         partialSum += (d * (two * (pD - pAP) - d)) / (two * pS * pS);
     }
-    float fd, delLL = partialSum.scalar();
+    float delLL = partialSum.scalar();
     for (unsigned j = i.value(); j < size; ++j)
     {
-        fd = delta1 * mat1[j] + delta2 * mat2[j];
+        float fd = delta1 * mat1[j] + delta2 * mat2[j];
         delLL += (fd * (2.f * (D[j] - AP[j]) - fd)) / (2.f * S[j] * S[j]);
     }
     return delLL;
 }
 
-// horribly slow, don't call often
-RowMatrix gaps::algo::matrixMultiplication(const ColMatrix &A, const RowMatrix &B)
+// multiply A by B transpose - super slow, don't call often
+ColMatrix gaps::algo::matrixMultiplication(const ColMatrix &A, const ColMatrix &BT)
 {
-    GAPS_ASSERT_MSG(A.nCol() == B.nRow(), A.nCol() << " " << B.nRow());
-    RowMatrix temp(A.nRow(), B.nCol());
+    GAPS_ASSERT_MSG(A.nCol() == BT.nCol(), A.nCol() << " " << BT.nCol());
+    ColMatrix temp(A.nRow(), BT.nRow());
     for (unsigned i = 0; i < A.nRow(); ++i)
     {
-        for (unsigned j = 0; j < B.nCol(); ++j)
+        for (unsigned j = 0; j < BT.nRow(); ++j)
         {
             float sum = 0.0;
             for (unsigned k = 0; k < A.nCol(); ++k)
             {
-                sum += A(i,k) * B(k,j);
+                sum += A(i,k) * BT(j,k);
             }
             temp(i,j) = sum;
         }
     }
-    return temp;
+    return temp;    
 }

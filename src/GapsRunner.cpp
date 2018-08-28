@@ -1,8 +1,9 @@
-#include "GapsAssert.h"
-#include "GapsPrint.h"
 #include "GapsRunner.h"
+#include "file_parser/FileParser.h"
 #include "math/Random.h"
 #include "math/SIMD.h"
+#include "utils/GapsAssert.h"
+#include "utils/GapsPrint.h"
 
 #ifdef __GAPS_R_BUILD__
 #include <Rcpp.h>
@@ -114,7 +115,7 @@ GapsResult GapsRunner::run(bool printThreads)
             break;
     }
     GapsResult result(mStatistics);
-    result.meanChiSq = mStatistics.meanChiSq(mASampler);
+    result.meanChiSq = mStatistics.meanChiSq(mPSampler);
     return result;    
 }
 

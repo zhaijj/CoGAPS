@@ -1,7 +1,7 @@
 #ifndef __COGAPS_FILE_PARSER_H__
 #define __COGAPS_FILE_PARSER_H__
 
-#include "../GapsAssert.h"
+#include "../utils/GapsAssert.h"
 #include "MatrixElement.h"
 
 #include <fstream>
@@ -16,6 +16,7 @@ enum GapsFileType
 };
 
 // file parser interface
+// don't care about virtual function overhead here
 class AbstractFileParser
 {
 private:

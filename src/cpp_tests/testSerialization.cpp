@@ -1,8 +1,8 @@
 #include "catch.h"
-#include "../Archive.h"
-#include "../data_structures/Matrix.h"
 #include "../GibbsSampler.h"
+#include "../data_structures/Matrix.h"
 #include "../math/Random.h"
+#include "../utils/Archive.h"
 
 #if 0
 
