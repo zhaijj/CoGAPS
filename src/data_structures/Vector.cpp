@@ -96,11 +96,14 @@ SparseVector::SparseVector(const std::vector<float> &v)
 float& SparseVector::operator[](unsigned i)
 {
     std::vector<unsigned>::iterator it = std::find(mIndices.begin(), mIndices.end(), i);
+    //if (it != mIndices.end())
     return mValues[*it];
 }
 
 float SparseVector::operator[](unsigned i) const
 {
     std::vector<unsigned>::const_iterator it = std::find(mIndices.begin(), mIndices.end(), i);
-    return mValues[*it];
+    if (it != mIndices.end())
+        return mValues[*it];
+    return 0.f;
 }

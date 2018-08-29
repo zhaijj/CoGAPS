@@ -124,15 +124,15 @@ const float *S, const float *AP, const float *mat)
     return AlphaParameters(s,su);
 }
 
-AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D,
-    const SparseVector &S, const SparseVector &AP, const SparseVector &mat)
+AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D, const SparseVector &S, const SparseVector &AP, const SparseVector &mat)
 {
     float ratio, s = 0.0, su = 0.0;
-    for (unsigned i = 0; i < size; ++i)
+    std::vector<unsigned> nonZeros = mat.whichNonZeros();
+    for (unsigned i = 0; i < nonZeros.size(); ++i)
     {
-        ratio = mat[i] / S[i];
+        ratio = mat[nonZeros[i]] / S[nonZeros[i]];
         s += ratio * ratio;
-        su += (ratio * (D[i] - AP[i])) / S[i];
+        su += (ratio * (D[nonZeros[i]] - AP[nonZeros[i]])) / S[nonZeros[i]];
     }
     return AlphaParameters(s,su);
 }
@@ -171,11 +171,15 @@ AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D
     const SparseVector &mat2)
 {
     float ratio, s = 0.0, su = 0.0;
-    for (unsigned i = 0; i < size; ++i)
+    std::vector<unsigned> nonZeros1 = mat1.whichNonZeros();
+    std::vector<unsigned> nonZeros2 = mat2.whichNonZeros();
+    std::vector<unsigned> nonZeros;
+    std::set_union(nonZeros1.begin(),nonZeros1.end(),nonZeros2.begin(),nonZeros2.end(),back_inserter(nonZeros));
+    for (unsigned i = 0; i < nonZeros.size(); ++i)
     {
-        ratio = (mat1[i] - mat2[i]) / S[i];
+        ratio = (mat1[nonZeros[i]] - mat2[nonZeros[i]]) / S[nonZeros[i]];
         s += ratio * ratio;
-        su += (ratio * (D[i] - AP[i])) / S[i];
+        su += (ratio * (D[nonZeros[i]] - AP[nonZeros[i]])) / S[nonZeros[i]];
     }
     return AlphaParameters(s,su);
 }
@@ -207,10 +211,11 @@ const float *AP, const float *mat, float delta)
 float gaps::algo::deltaLL(unsigned size, const SparseVector &D, const SparseVector &S, const SparseVector &AP, const SparseVector &mat, float delta)
 {
     float d, delLL = 0;
-    for (unsigned i = 0; i < size; ++i)
+    std::vector<unsigned> nonZeros = mat.whichNonZeros();
+    for (unsigned i = 0; i < nonZeros.size(); ++i)
     {
-        d = delta * mat[i];
-        delLL += (d * (2.f * (D[i] - AP[i]) - d)) / (2.f * S[i] * S[i]);
+        d = delta * mat[nonZeros[i]];
+        delLL += (d * (2.f * (D[nonZeros[i]] - AP[nonZeros[i]]) - d)) / (2.f * S[nonZeros[i]] * S[nonZeros[i]]);
     }
     return delLL;
 }
@@ -245,10 +250,14 @@ float gaps::algo::deltaLL(unsigned size, const SparseVector &D, const           
 const SparseVector &mat2, float delta2)
 {
     float d, delLL = 0;
-    for (unsigned i = 0; i < size; ++i)
+    std::vector<unsigned> nonZeros1 = mat1.whichNonZeros();
+    std::vector<unsigned> nonZeros2 = mat2.whichNonZeros();
+    std::vector<unsigned> nonZeros;
+    std::set_union(nonZeros1.begin(),nonZeros1.end(),nonZeros2.begin(),nonZeros2.end(),back_inserter(nonZeros));
+    for (unsigned i = 0; i < nonZeros.size(); ++i)
     {
-        d = delta1 * mat1[i] + delta2 * mat2[i];
-        delLL += (d * (2.f * (D[i] - AP[i]) - d)) / (2.f * S[i] * S[i]);
+        d = delta1 * mat1[nonZeros[i]] + delta2 * mat2[nonZeros[i]];
+        delLL += (d * (2.f * (D[nonZeros[i]] - AP[nonZeros[i]]) - d)) / (2.f * S[nonZeros[i]] * S[nonZeros[i]]);
     }
     return delLL;
 }

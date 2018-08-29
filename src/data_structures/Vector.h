@@ -61,8 +61,9 @@ public:
     const float* ptr() const {return &mValues[0];}
 
     float& operator[](unsigned i);
-
     float operator[](unsigned i) const;
+
+    std::vector<unsigned> whichNonZeros() const {return mIndices;}
 
     //friend Archive& operator<<(Archive &ar, Vector &vec);
     //friend Archive& operator>>(Archive &ar, Vector &vec);
