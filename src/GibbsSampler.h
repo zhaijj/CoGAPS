@@ -84,6 +84,7 @@ private:
     OptionalFloat gibbsMass(AlphaParameters alpha, GapsRng *rng);
     OptionalFloat gibbsMass(AlphaParameters alpha, float m1, float m2, GapsRng *rng);
 
+    void changeMatrix(unsigned row, unsigned col, float delta);
     void safelyChangeMatrix(unsigned row, unsigned col, float delta);
     void updateAPMatrix(unsigned row, unsigned col, float delta);
 

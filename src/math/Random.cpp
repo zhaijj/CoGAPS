@@ -15,8 +15,8 @@
 #define Q_GAMMA_THRESHOLD 0.000001f
 #define Q_GAMMA_MIN_VALUE 0.f
 
-const float maxU32AsFloat = static_cast<float>(std::numeric_limits<uint32_t>::max());
-const double maxU32AsDouble = static_cast<double>(std::numeric_limits<uint32_t>::max());
+static const float maxU32AsFloat = static_cast<float>(std::numeric_limits<uint32_t>::max());
+static const double maxU32AsDouble = static_cast<double>(std::numeric_limits<uint32_t>::max());
 
 /////////////////////////////// OptionalFloat //////////////////////////////////
 
@@ -51,15 +51,12 @@ void Xoroshiro128plus::seed(uint64_t seed)
 uint64_t Xoroshiro128plus::next()
 {
     uint64_t result = 0;
-    #pragma omp critical(RngCreation)
-    {
-        const uint64_t s0 = mState[0];
-        uint64_t s1 = mState[1];
-        result = s0 + s1;
-        s1 ^= s0;
-        mState[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16); // a, b
-        mState[1] = rotl(s1, 37); // c
-    }
+    const uint64_t s0 = mState[0];
+    uint64_t s1 = mState[1];
+    result = s0 + s1;
+    s1 ^= s0;
+    mState[0] = rotl(s0, 24) ^ s1 ^ (s1 << 16); // a, b
+    mState[1] = rotl(s1, 37); // c
     return result;
 }
 

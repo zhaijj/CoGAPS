@@ -47,6 +47,7 @@ public:
     uint64_t randomFreePosition(GapsRng *rng) const;
     uint64_t size() const;
 
+    // these need to happen concurrently without invalidating pointers
     void erase(uint64_t pos);
     void insert(uint64_t pos, float mass);
 
