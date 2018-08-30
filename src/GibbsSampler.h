@@ -3,6 +3,7 @@
 
 #include "AtomicDomain.h"
 #include "data_structures/Matrix.h"
+#include "data_structures/ProposalLocks.h"
 #include "math/Algorithms.h"
 #include "math/Random.h"
 
@@ -59,7 +60,6 @@ private:
 
     Xoroshiro128plus mSeeder; // used to generate seeds for individual proposals
 
-    float mAlpha;
     float mLambda;
     float mMaxGibbsMass;
     float mAnnealingTemp;
@@ -69,13 +69,16 @@ private:
     uint64_t mBinSize;
     uint64_t mDomainLength;
 
-    void makeAndProcessProposal(GapsRng *rng);
-    float deathProb(uint64_t nAtoms) const;
+    ProposalTypeLock mPropTypeLock;
+    ProposalLocationLock mPropLocationLock;
 
-    void birth(GapsRng *rng);
-    void death(GapsRng *rng);
-    void move(GapsRng *rng);
-    void exchange(GapsRng *rng);
+    void processProposal(AtomicProposal *prop);
+    void birth(AtomicProposal *prop);
+    void death(AtomicProposal *prop);
+    void move(AtomicProposal *prop);
+    void exchange(AtomicProposal *prop);
+    void exchangeUsingMetropolisHastings(AtomicProposal *prop,
+        AlphaParameters alpha, unsigned r1, unsigned c1, unsigned r2, unsigned c2);
 
     void acceptExchange(Atom *a1, Atom *a2, float d1, unsigned r1,
         unsigned c1, unsigned r2, unsigned c2);
@@ -116,7 +119,9 @@ mAnnealingTemp(1.f),
 mNumPatterns(mMatrix.nCol()),
 mNumBins(mMatrix.nRow() * mMatrix.nCol()),
 mBinSize(std::numeric_limits<uint64_t>::max() / mNumBins),
-mDomainLength(mBinSize * mNumBins)
+mDomainLength(mBinSize * mNumBins),
+mPropTypeLock(mMatrix.nRow(), mMatrix.nCol()),
+mPropLocationLock(mMatrix.nRow(), mMatrix.nCol())
 {
     // default sparsity parameters
     setSparsity(0.01, false);

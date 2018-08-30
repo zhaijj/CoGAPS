@@ -1,6 +1,9 @@
 #ifndef __COGAPS_PROPOSAL_LOCKS_H__
 #define __COGAPS_PROPOSAL_LOCKS_H__
 
+#include "../AtomicDomain.h"
+#include "../math/Random.h"
+
 #include <vector>
 #include <stdint.h>
 
@@ -21,10 +24,17 @@ class ProposalTypeLock
 {
 public:
 
-    ProposalTypeLock();
-    AtomicProposal createProposal(unsigned id);
+    ProposalTypeLock(unsigned nrow, unsigned npat);
 
+    void setAlpha(double alpha);
     void setNumAtoms(unsigned n);
+
+    AtomicProposal createProposal(uint64_t seed, uint64_t id);
+
+    void rejectBirth();
+    void acceptBirth();
+    void rejectDeath();
+    void acceptDeath();
 
     #ifdef GAPS_DEBUG
     bool consistent() const;
@@ -37,9 +47,12 @@ private:
 
     unsigned mMinAtoms;
     unsigned mMaxAtoms;
-    float mAlpha;
+    double mAlpha;
 
     float deathProb(double nAtoms) const;
+
+    void possibleBirth();
+    void possibleDeath();
 };
 
 class ProposalLocationLock
@@ -48,14 +61,15 @@ public:
 
     ProposalLocationLock(unsigned nrow, unsigned npat);
 
-    void fillProposal(AtomicProposal *prop, unsigned id);
+    void fillProposal(AtomicProposal *prop, AtomicDomain *domain, unsigned id);
 
 private:
     
-    bool sameBin(Atom *a1, Atom *a2);
+    bool sameBin(uint64_t p1, uint64_t p2);
 
     uint64_t mBinSize;
     uint64_t mNumPatterns;
+    uint64_t mDomainLength;
 };
 
 class IntFixedHashSet

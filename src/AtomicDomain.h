@@ -26,6 +26,7 @@ struct AtomNeighborhood
     Atom* left;
     Atom* right;
 
+    AtomNeighborhood();
     AtomNeighborhood(Atom *l, Atom *c, Atom *r);
 
     bool hasLeft();

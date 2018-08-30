@@ -22,7 +22,7 @@ void GibbsSampler::setSparsity(float alpha, bool singleCell)
     float meanD = singleCell ? gaps::algo::nonZeroMean(mDMatrix) :
         gaps::algo::mean(mDMatrix);
 
-    mAlpha = alpha;
+    mPropTypeLock.setAlpha(alpha);
     mLambda = alpha * std::sqrt(mNumPatterns / meanD);
 }
 
@@ -79,11 +79,8 @@ void GibbsSampler::update(unsigned nSteps, unsigned nCores)
     for (unsigned n = 0; n < nSteps; ++n)
     {
         AtomicProposal prop(mPropTypeLock.createProposal(seed, n));
-        mPropLocationLock.fillProposal(&prop, n);
-        if (prop->type != 'R') // check if proposal was resolved during creation
-        {
-            processProposal(&prop);
-        }
+        mPropLocationLock.fillProposal(&prop, &mDomain, n);
+        processProposal(&prop);
     }
     GAPS_ASSERT(mPropTypeLock.consistent());
 }
@@ -151,7 +148,7 @@ void GibbsSampler::death(AtomicProposal *prop)
     float rebirthMass = prop->atom1->mass;
     if (canUseGibbs(col))
     {
-        OptionalFloat gMass = gibbsMass(alpha, rng);
+        OptionalFloat gMass = gibbsMass(alpha, &(prop->rng));
         if (gMass.hasValue())
         {
             rebirthMass = gMass.value();
@@ -184,7 +181,12 @@ void GibbsSampler::move(AtomicProposal *prop)
     unsigned c1 = getCol(prop->atom1->pos);
     unsigned r2 = getRow(prop->pos);
     unsigned c2 = getCol(prop->pos);
-    GAPS_ASSERT(r1 != r2 || c1 != c2);
+
+    if (r1 == r2 && c1 == c2)
+    {
+        prop->atom1->pos = prop->pos;
+        return;
+    }
     
     AlphaParameters alpha = alphaParameters(r1, c1, r2, c2);
     if (std::log(prop->rng.uniform()) < getDeltaLL(alpha, -prop->atom1->mass) * mAnnealingTemp)
@@ -201,9 +203,14 @@ void GibbsSampler::exchange(AtomicProposal *prop)
 {
     unsigned r1 = getRow(prop->atom1->pos);
     unsigned c1 = getCol(prop->atom1->pos);
-    unsigned r2 = getRow(prop->pos);
-    unsigned c2 = getCol(prop->pos);
-    GAPS_ASSERT(r1 != r2 || c1 != c2);
+    unsigned r2 = getRow(prop->atom2->pos);
+    unsigned c2 = getCol(prop->atom2->pos);
+
+    if (r1 == r2 && c1 == c2)
+    {
+        mPropTypeLock.rejectDeath();
+        return;
+    }
 
     // attempt gibbs distribution exchange
     AlphaParameters alpha = alphaParameters(r1, c1, r2, c2);
@@ -218,11 +225,12 @@ void GibbsSampler::exchange(AtomicProposal *prop)
         }
     }
 
-    // resort to metropolis-hastings
-    exchangeUsingMetropolisHastings(prop);
+    // resort to metropolis-hastings if gibbs fails
+    exchangeUsingMetropolisHastings(prop, alpha, r1, c1, r2, c2);
 }
 
-void GibbsSampler::exchangeUsingMetropolisHastings(AtomicProposal *prop)
+void GibbsSampler::exchangeUsingMetropolisHastings(AtomicProposal *prop,
+AlphaParameters alpha, unsigned r1, unsigned c1, unsigned r2, unsigned c2)
 {
     // compute amount of mass to be exchanged
     float totalMass = prop->atom1->mass + prop->atom2->mass;
@@ -247,9 +255,10 @@ void GibbsSampler::exchangeUsingMetropolisHastings(AtomicProposal *prop)
     float deltaLL = getDeltaLL(alpha, delta) * mAnnealingTemp;
     if (priorLL == 0.f || std::log(prop->rng.uniform() * priorLL) < deltaLL)
     {
-        acceptExchange(a1, a2, delta, r1, c1, r2, c2);
+        acceptExchange(prop->atom1, prop->atom2, delta, r1, c1, r2, c2);
         return;
     }
+    mPropTypeLock.rejectDeath();
 }
 
 // helper function for exchange step

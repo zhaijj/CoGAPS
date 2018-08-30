@@ -63,6 +63,9 @@ Archive& operator>>(Archive &ar, Atom &a)
 
 //////////////////////////// ATOM NEIGHBORHOOD /////////////////////////////////
 
+AtomNeighborhood::AtomNeighborhood()
+    : center(NULL), left(NULL), right(NULL)
+{}
 
 AtomNeighborhood::AtomNeighborhood(Atom *l, Atom *c, Atom *r)
     : center(c), left(l), right(r)
