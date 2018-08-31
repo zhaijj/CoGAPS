@@ -6,30 +6,30 @@
 ////////////////////////////////// HELPER //////////////////////////////////////
 
 // used with std::lower_bound
-static bool compareAtomLower(const Atom &lhs, uint64_t pos)
+static bool compareAtomLower(const Atom* lhs, uint64_t pos)
 {
-    return lhs.pos < pos;
+    return lhs->pos < pos;
 }
 
 // used with std::binary_search
-static bool compareAtom(const Atom &lhs, const Atom &rhs)
+static bool compareAtom(const Atom *lhs, const Atom *rhs)
 {
-    return lhs.pos < rhs.pos;
+    return lhs->pos < rhs->pos;
 }
 
 // check if a position in contained in a vector of atoms
-static bool vecContains(const std::vector<Atom> &vec, uint64_t pos)
+static bool vecContains(const std::vector<Atom*> &vec, uint64_t pos)
 {
     Atom temp(pos, 0.f);
-    return std::binary_search(vec.begin(), vec.end(), temp, compareAtom);
+    return std::binary_search(vec.begin(), vec.end(), &temp, compareAtom);
 }
 
 // used in debug mode to check if vector is always sorted
-static bool isSorted(const std::vector<Atom> &vec)
+static bool isSorted(const std::vector<Atom*> &vec)
 {
     for (unsigned i = 1; i < vec.size(); ++i)
     {
-        if (vec[i].pos <= vec[i-1].pos)
+        if (vec[i]->pos <= vec[i-1]->pos)
         {
             return false;
         }
@@ -89,11 +89,19 @@ AtomicDomain::AtomicDomain(uint64_t nBins)
     mDomainLength = binLength * nBins;
 }
 
+AtomicDomain::~AtomicDomain()
+{
+    for (unsigned i = 0; i < mAtoms.size(); ++i)
+    {
+        delete mAtoms[i];
+    }
+}
+
 Atom* AtomicDomain::front()
 {
     GAPS_ASSERT(size() > 0);
 
-    return &(mAtoms.front());
+    return mAtoms.front();
 }
 
 Atom* AtomicDomain::randomAtom(GapsRng *rng)
@@ -102,7 +110,7 @@ Atom* AtomicDomain::randomAtom(GapsRng *rng)
     GAPS_ASSERT(isSorted(mAtoms));
 
     unsigned index = rng->uniform32(0, mAtoms.size() - 1);
-    return &(mAtoms[index]);
+    return mAtoms[index];
 }
 
 AtomNeighborhood AtomicDomain::randomAtomWithNeighbors(GapsRng *rng)
@@ -110,9 +118,9 @@ AtomNeighborhood AtomicDomain::randomAtomWithNeighbors(GapsRng *rng)
     GAPS_ASSERT(size() > 0);
 
     unsigned index = rng->uniform32(0, mAtoms.size() - 1);
-    Atom* left = (index == 0) ? NULL : &(mAtoms[index - 1]);
-    Atom* right = (index == mAtoms.size() - 1) ? NULL : &(mAtoms[index + 1]);
-    return AtomNeighborhood(left, &(mAtoms[index]), right);
+    Atom* left = (index == 0) ? NULL : mAtoms[index - 1];
+    Atom* right = (index == mAtoms.size() - 1) ? NULL : mAtoms[index + 1];
+    return AtomNeighborhood(left, mAtoms[index], right);
 }
 
 AtomNeighborhood AtomicDomain::randomAtomWithRightNeighbor(GapsRng *rng)
@@ -120,8 +128,8 @@ AtomNeighborhood AtomicDomain::randomAtomWithRightNeighbor(GapsRng *rng)
     GAPS_ASSERT(size() > 0);
 
     unsigned index = rng->uniform32(0, mAtoms.size() - 1);
-    Atom* right = (index == mAtoms.size() - 1) ? NULL : &(mAtoms[index + 1]);
-    return AtomNeighborhood(NULL, &(mAtoms[index]), right);
+    Atom* right = (index == mAtoms.size() - 1) ? NULL : mAtoms[index + 1];
+    return AtomNeighborhood(NULL, mAtoms[index], right);
 }
 
 uint64_t AtomicDomain::randomFreePosition(GapsRng *rng) const
@@ -144,16 +152,18 @@ void AtomicDomain::erase(uint64_t pos)
     GAPS_ASSERT(size() > 0);
     GAPS_ASSERT(vecContains(mAtoms, pos));
 
-    std::vector<Atom>::iterator it;
+    std::vector<Atom*>::iterator it;
     it = std::lower_bound(mAtoms.begin(), mAtoms.end(), pos, compareAtomLower);
+    Atom *a = *it;
     mAtoms.erase(it);
+    delete a;
 }
 
 void AtomicDomain::insert(uint64_t pos, float mass)
 {
-    std::vector<Atom>::iterator it;
+    std::vector<Atom*>::iterator it;
     it = std::lower_bound(mAtoms.begin(), mAtoms.end(), pos, compareAtomLower);
-    mAtoms.insert(it, Atom(pos, mass));
+    mAtoms.insert(it, new Atom(pos, mass));
 }
 
 Archive& operator<<(Archive &ar, AtomicDomain &domain)
@@ -162,7 +172,7 @@ Archive& operator<<(Archive &ar, AtomicDomain &domain)
     
     for (unsigned i = 0; i < domain.mAtoms.size(); ++i)
     {
-        ar << domain.mAtoms[i];
+        ar << *(domain.mAtoms[i]);
     }
     return ar;
 }

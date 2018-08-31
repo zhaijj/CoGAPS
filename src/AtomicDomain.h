@@ -38,6 +38,7 @@ class AtomicDomain
 public:
 
     AtomicDomain(uint64_t nBins);
+    ~AtomicDomain();
 
     // access atoms
     Atom* front();
@@ -64,7 +65,7 @@ private:
     uint64_t mDomainLength;
 
     // domain storage, sorted vector
-    std::vector<Atom> mAtoms;
+    std::vector<Atom*> mAtoms;
 };
 
 #endif
