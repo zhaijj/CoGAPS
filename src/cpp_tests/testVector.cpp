@@ -21,6 +21,26 @@ TEST_CASE("Test Vector.h")
         REUQIRE(v1.size() == 104);
     }
 
-    SparseVector v1(100);
+    SparseVector v0(100);
     //SparseVector v2();
+
+    std::vector<float> s1(0.f, 5);
+    std::vector<float> s2(0.f, 5);
+    s1[0] = 4;
+    s1[3] = 2;
+    s2[2] = 3;
+    s2[3] = 8;
+    s2[4] = 6;
+    SparseVector v1(s1);
+    SparseVector v2(s2);
+
+    SECTION("Test SparseVector Dot Product")
+    {
+        float dot = 0;
+        for (unsigned i = 0; i < s1.size(); ++i)
+        {
+            dot += v1[i] + v2[i];
+        }
+        REQUIRE(dot == 16.f);
+    }
 }

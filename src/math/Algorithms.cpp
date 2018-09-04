@@ -130,9 +130,14 @@ AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D
     std::vector<unsigned> nonZeros = mat.whichNonZeros();
     for (unsigned i = 0; i < nonZeros.size(); ++i)
     {
-        ratio = mat[nonZeros[i]] / S[nonZeros[i]];
+        float Sval = S[nonZeros[i]];
+        if (Sval == 0)
+        {
+            Sval = 0.1;
+        }
+        ratio = mat[nonZeros[i]] / Sval;
         s += ratio * ratio;
-        su += (ratio * (D[nonZeros[i]] - AP[nonZeros[i]])) / S[nonZeros[i]];
+        su += (ratio * (D[nonZeros[i]] - AP[nonZeros[i]])) / Sval;
     }
     return AlphaParameters(s,su);
 }
@@ -166,9 +171,7 @@ const float *S, const float *AP, const float *mat1, const float *mat2)
     return AlphaParameters(s,su);
 }
 
-AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D,
-    const SparseVector &S, const SparseVector &AP, const SparseVector &mat1,
-    const SparseVector &mat2)
+AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D, const SparseVector &S, const SparseVector &AP, const SparseVector &mat1, const SparseVector &mat2)
 {
     float ratio, s = 0.0, su = 0.0;
     std::vector<unsigned> nonZeros1 = mat1.whichNonZeros();
@@ -177,9 +180,14 @@ AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D
     std::set_union(nonZeros1.begin(),nonZeros1.end(),nonZeros2.begin(),nonZeros2.end(),back_inserter(nonZeros));
     for (unsigned i = 0; i < nonZeros.size(); ++i)
     {
-        ratio = (mat1[nonZeros[i]] - mat2[nonZeros[i]]) / S[nonZeros[i]];
+        float Sval = S[nonZeros[i]];
+        if (Sval == 0)
+        {
+            Sval = 0.1;
+        }
+        ratio = (mat1[nonZeros[i]] - mat2[nonZeros[i]]) / Sval;
         s += ratio * ratio;
-        su += (ratio * (D[nonZeros[i]] - AP[nonZeros[i]])) / S[nonZeros[i]];
+        su += (ratio * (D[nonZeros[i]] - AP[nonZeros[i]])) / Sval;
     }
     return AlphaParameters(s,su);
 }
