@@ -72,20 +72,20 @@ void GibbsSampler::sync(const GibbsSampler &sampler)
 
 void GibbsSampler::update(unsigned nSteps, unsigned nCores)
 {
-    mPropTypeLock.setNumAtoms(mDomain.size());
     uint64_t seed = mSeeder.next();
 
     //#pragma omp parallel for num_threads(nCores) schedule(static, 1)
-    for (unsigned n = 0; n < nSteps; ++n)
+    for (unsigned n = 1; n <= nSteps; ++n)
     {
         AtomicProposal prop(mPropTypeLock.createProposal(seed, n));
         mPropLocationLock.fillProposal(&prop, &mDomain, n);
         processProposal(&prop);
     }
-    GAPS_ASSERT(mPropTypeLock.consistent());
+    mPropTypeLock.reset();
+    mPropLocationLock.reset();
 }
 
-// there should be no data races in anything downstream of this function
+// there should be no data races in anything downstream of this function,
 // the locks used to create the proposal ensure that no two conflicting
 // proposals are sent to this function at the same time, any aditional
 // conflicts or data races must be resolved with critical/atomic pragmas
@@ -107,14 +107,15 @@ void GibbsSampler::processProposal(AtomicProposal *prop)
             exchange(prop);
             break;
     }
+    mPropLocationLock.release(*prop);
 }
 
 // add an atom at a random position, calculate mass either with an
 // exponential distribution or with the gibbs mass distribution
 void GibbsSampler::birth(AtomicProposal *prop)
 {
-    unsigned row = getRow(prop->pos);
-    unsigned col = getCol(prop->pos);
+    unsigned row = getRow(prop->atom1->pos);
+    unsigned col = getCol(prop->atom1->pos);
 
     // calculate proposed mass
     float mass = canUseGibbs(col)
@@ -124,12 +125,13 @@ void GibbsSampler::birth(AtomicProposal *prop)
     // accept mass as long as it's non-zero
     if (mass >= gaps::epsilon)
     {
-        mDomain.insert(prop->pos, mass);
+        prop->atom1->mass = mass;
         changeMatrix(row, col, mass);
         mPropTypeLock.acceptBirth();
     }
     else
     {
+        mDomain.erase(prop->atom1->pos);
         mPropTypeLock.rejectBirth();
     }
 }
@@ -191,7 +193,9 @@ void GibbsSampler::move(AtomicProposal *prop)
     AlphaParameters alpha = alphaParameters(r1, c1, r2, c2);
     if (std::log(prop->rng.uniform()) < getDeltaLL(alpha, -prop->atom1->mass) * mAnnealingTemp)
     {
+        uint64_t old = prop->atom1->pos;
         prop->atom1->pos = prop->pos;
+        prop->pos = old; // needed for the proposal lock
         safelyChangeMatrix(r1, c1, -prop->atom1->mass);
         changeMatrix(r2, c2, prop->atom1->mass);
     }
@@ -258,25 +262,19 @@ AlphaParameters alpha, unsigned r1, unsigned c1, unsigned r2, unsigned c2)
         acceptExchange(prop->atom1, prop->atom2, delta, r1, c1, r2, c2);
         return;
     }
-    mPropTypeLock.rejectDeath();
 }
 
 // helper function for exchange step
 void GibbsSampler::acceptExchange(Atom *a1, Atom *a2, float delta,
 unsigned r1, unsigned c1, unsigned r2, unsigned c2)
 {
-    bool b1 = updateAtomMass(a1, delta);
-    bool b2 = updateAtomMass(a2, -delta);
-    if (b1 && b2)
+    if (a1->mass + delta > gaps::epsilon && a2->mass - delta > gaps::epsilon)
     {
-        mPropTypeLock.rejectDeath();
+        a1->mass += delta;
+        a2->mass -= delta;
     }
-
-    float d1 = b1 ? delta : -a1->mass;
-    float d2 = b2 ? -delta : -a2->mass;
-
-    safelyChangeMatrix(r1, c1, d1);
-    safelyChangeMatrix(r2, c2, d2);
+    changeMatrix(r1, c1, delta);
+    changeMatrix(r2, c2, -delta);
 }
 
 // helper function for acceptExchange, used to conditionally update the mass
@@ -341,10 +339,11 @@ float m1, float m2, GapsRng *rng)
     return OptionalFloat();
 }
 
-// here delta is guaranteed to be positive
+// here mass + delta is guaranteed to be positive
 void GibbsSampler::changeMatrix(unsigned row, unsigned col, float delta)
 {
     mMatrix(row, col) += delta;
+    GAPS_ASSERT(mMatrix(row, col) >= 0.f);
     updateAPMatrix(row, col, delta);
 }
 

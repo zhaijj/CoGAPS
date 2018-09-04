@@ -10,6 +10,7 @@ OBJECTS =   AtomicDomain.o \
             GibbsSampler.o \
             RcppExports.o \
             test-runner.o \
+            data_structures/HashSets.o \
             data_structures/Matrix.o \
             data_structures/ProposalLocks.o \
             data_structures/Vector.o \

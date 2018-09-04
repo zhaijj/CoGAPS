@@ -155,15 +155,26 @@ void AtomicDomain::erase(uint64_t pos)
     std::vector<Atom*>::iterator it;
     it = std::lower_bound(mAtoms.begin(), mAtoms.end(), pos, compareAtomLower);
     Atom *a = *it;
-    mAtoms.erase(it);
+
+    #pragma omp critical(AtomicInsertOrErase)
+    {
+        mAtoms.erase(it);
+    }
     delete a;
 }
 
-void AtomicDomain::insert(uint64_t pos, float mass)
+Atom* AtomicDomain::insert(uint64_t pos, float mass)
 {
     std::vector<Atom*>::iterator it;
     it = std::lower_bound(mAtoms.begin(), mAtoms.end(), pos, compareAtomLower);
-    mAtoms.insert(it, new Atom(pos, mass));
+    Atom *newAtom = new Atom(pos, mass);
+
+    #pragma omp critical(AtomicInsertOrErase)
+    {
+        it = mAtoms.insert(it, newAtom);
+    }
+    
+    return *it;
 }
 
 Archive& operator<<(Archive &ar, AtomicDomain &domain)

@@ -51,7 +51,7 @@ public:
 
     // these need to happen concurrently without invalidating pointers
     void erase(uint64_t pos);
-    void insert(uint64_t pos, float mass);
+    Atom* insert(uint64_t pos, float mass);
 
     // serialization
     friend Archive& operator<<(Archive &ar, AtomicDomain &domain);
