@@ -128,16 +128,25 @@ AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D
 {
     float ratio, s = 0.0, su = 0.0;
     std::vector<unsigned> nonZeros = mat.whichNonZeros();
+    std::vector<unsigned> nonZeros_S = S.whichNonZeros();
+    std::vector<unsigned> nonZeros_D = D.whichNonZeros();
+    std::vector<unsigned> nonZeros_AP = AP.whichNonZeros();
+    unsigned Sndx = 0, Dndx = 0, APndx = 0;
+
     for (unsigned i = 0; i < nonZeros.size(); ++i)
     {
-        float Sval = S[nonZeros[i]];
-        if (Sval == 0)
-        {
-            Sval = 0.1;
-        }
+        while (Sndx < nonZeros_S.size() && nonZeros_S[Sndx++] < nonZeros[i]);
+        float Sval = (nonZeros_S[Sndx] == nonZeros[i]) ? S[nonZeros_S[Sndx]] : 0.1f;
+
+        while (Dndx < nonZeros_D.size() && nonZeros_D[Dndx++] < nonZeros[i]);
+        float Dval = (nonZeros_D[Dndx] == nonZeros[i]) ? D[nonZeros_D[Dndx]] : 0.f;
+
+        while (APndx < nonZeros_AP.size() && nonZeros_AP[APndx++] < nonZeros[i]);
+        float APval = (nonZeros_AP[APndx] == nonZeros[i]) ? AP[nonZeros_AP[APndx]] : 0.f;
+
         ratio = mat[nonZeros[i]] / Sval;
         s += ratio * ratio;
-        su += (ratio * (D[nonZeros[i]] - AP[nonZeros[i]])) / Sval;
+        su += (ratio * (Dval - APval)) / Sval;
     }
     return AlphaParameters(s,su);
 }
@@ -174,20 +183,49 @@ const float *S, const float *AP, const float *mat1, const float *mat2)
 AlphaParameters gaps::algo::alphaParameters(unsigned size, const SparseVector &D, const SparseVector &S, const SparseVector &AP, const SparseVector &mat1, const SparseVector &mat2)
 {
     float ratio, s = 0.0, su = 0.0;
-    std::vector<unsigned> nonZeros1 = mat1.whichNonZeros();
-    std::vector<unsigned> nonZeros2 = mat2.whichNonZeros();
-    std::vector<unsigned> nonZeros;
-    std::set_union(nonZeros1.begin(),nonZeros1.end(),nonZeros2.begin(),nonZeros2.end(),back_inserter(nonZeros));
-    for (unsigned i = 0; i < nonZeros.size(); ++i)
+    std::vector<unsigned> nonZeros_1 = mat1.whichNonZeros();
+    std::vector<unsigned> nonZeros_2 = mat2.whichNonZeros();
+
+    std::vector<unsigned> nonZeros_S = S.whichNonZeros();
+    std::vector<unsigned> nonZeros_D = D.whichNonZeros();
+    std::vector<unsigned> nonZeros_AP = AP.whichNonZeros();
+    unsigned Sndx = 0, Dndx = 0, APndx = 0, ndx1 = 0, ndx2 = 0, masterNdx = 0;
+
+    while (ndx1 < nonZeros_1.size() && ndx2 < nonZeros_2.size())
     {
-        float Sval = S[nonZeros[i]];
-        if (Sval == 0)
+        float matVal = 0.f;
+        if (nonZeros_1[ndx1] == nonZeros_2[ndx2])
         {
-            Sval = 0.1;
+            matVal = mat1[nonZeros_1[ndx1]] - mat2[nonZeros_2[ndx2]];
+            masterNdx = nonZeros_1[ndx1];
+            ++ndx1;
+            ++ndx2;
         }
-        ratio = (mat1[nonZeros[i]] - mat2[nonZeros[i]]) / Sval;
+        else if (nonZeros_1[ndx1] < nonZeros_2[ndx2])
+        {
+            matVal = mat1[nonZeros_1[ndx1]];
+            masterNdx = nonZeros_1[ndx1];
+            ++ndx1;
+        }
+        else
+        {
+            matVal = mat2[nonZeros_2[ndx2]];
+            masterNdx = nonZeros_2[ndx2];
+            ++ndx2;
+        }
+
+        while (Sndx < nonZeros_S.size() && nonZeros_S[Sndx++] < masterNdx);
+        float Sval = (nonZeros_S[Sndx] == masterNdx) ? S[nonZeros_S[Sndx]] : 0.1f;
+
+        while (Dndx < nonZeros_D.size() && nonZeros_D[Dndx++] < masterNdx);
+        float Dval = (nonZeros_D[Dndx] == masterNdx) ? D[nonZeros_D[Dndx]] : 0.f;
+
+        while (APndx < nonZeros_AP.size() && nonZeros_AP[APndx++] < masterNdx);
+        float APval = (nonZeros_AP[APndx] == masterNdx) ? AP[nonZeros_AP[APndx]] : 0.f;
+
+        ratio = matVal / Sval;
         s += ratio * ratio;
-        su += (ratio * (D[nonZeros[i]] - AP[nonZeros[i]])) / Sval;
+        su += (ratio * (Dval - APval)) / Sval;
     }
     return AlphaParameters(s,su);
 }
