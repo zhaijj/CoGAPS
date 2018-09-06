@@ -1,11 +1,5 @@
 #include "ProposalLocks.h"
 
-template <class Tp>
-static void DoNotOptimize(Tp const& value)
-{
-    __asm__ __volatile__("" : : "g"(value) : "memory");
-}
-
 ////////////////////////////// AtomicProposal //////////////////////////////////
 
 AtomicProposal::AtomicProposal(uint64_t seed, uint64_t id)
@@ -38,10 +32,10 @@ AtomicProposal ProposalTypeLock::createProposal(uint64_t seed, uint64_t id)
     waitForTurn(id);
 
     // special indeterminate case
-    //while (mMinAtoms < 2 && mMaxAtoms >= 2)
-    //{
-
-    //}
+    while (mMinAtoms < 2 && mMaxAtoms >= 2)
+    {
+        #pragma omp taskyield
+    }
 
     if (mMaxAtoms < 2) // always birth with 0 or 1 atom
     {
@@ -55,7 +49,7 @@ AtomicProposal ProposalTypeLock::createProposal(uint64_t seed, uint64_t id)
         float upperBound = deathProb(static_cast<double>(mMaxAtoms));
         while (lowerBound < u2 && u2 < upperBound)
         {
-            DoNotOptimize(mMinAtoms);
+            #pragma omp taskyield
             lowerBound = deathProb(static_cast<double>(mMinAtoms));
             upperBound = deathProb(static_cast<double>(mMaxAtoms));
         }
@@ -115,7 +109,7 @@ void ProposalTypeLock::waitForTurn(unsigned id)
 {
     while (mLastProcessed < id - 1)
     {
-        DoNotOptimize(mLastProcessed);
+        #pragma omp taskyield
     }
 }
 
@@ -181,7 +175,7 @@ void ProposalLocationLock::waitForTurn(unsigned id)
 {
     while (mLastProcessed < id - 1)
     {
-        DoNotOptimize(mLastProcessed);
+        #pragma omp taskyield
     }
 }
 
@@ -230,7 +224,7 @@ void ProposalLocationLock::waitOnMatrixIndex(uint64_t pos)
     unsigned index = pos / mRowLength;
     while (mUsedMatrixIndices.contains(index))
     {
-        DoNotOptimize(index);
+        #pragma omp taskyield
     }
     mUsedMatrixIndices.insert(index);
 }
@@ -242,7 +236,7 @@ void ProposalLocationLock::waitOnMatrixIndex(uint64_t p1, uint64_t p2)
     unsigned ndx2 = p2 / mRowLength;
     while (mUsedMatrixIndices.contains(ndx1) || mUsedMatrixIndices.contains(ndx2))
     {
-        DoNotOptimize(ndx1);
+        #pragma omp taskyield
     }
     mUsedMatrixIndices.insert(ndx1);
     mUsedMatrixIndices.insert(ndx2);
@@ -252,7 +246,7 @@ void ProposalLocationLock::waitUntilMoveResolved(uint64_t pos)
 {
     while (mPotentialMoves.contains(pos))
     {
-        DoNotOptimize(pos);
+        #pragma omp taskyield
     }
 }
 
@@ -265,7 +259,7 @@ bool ProposalLocationLock::hasDied(uint64_t pos)
 {
     while (mPotentialDeaths.contains(pos))
     {
-        DoNotOptimize(pos);
+        #pragma omp taskyield
     }
     return mDeathCanaries.pop(pos);
 }
@@ -301,6 +295,7 @@ void ProposalLocationLock::fillDeath(AtomicProposal *prop, AtomicDomain *domain)
             pos = prop->atom1->pos;
             watchForDeath(pos);
         }
+        #pragma omp taskyield
     } while (hasDied(pos));
     mPotentialDeaths.insert(prop->atom1->pos);
 
@@ -327,6 +322,7 @@ void ProposalLocationLock::fillMove(AtomicProposal *prop, AtomicDomain *domain)
             watchForDeath(pos2);
             watchForDeath(pos3);
         }
+        #pragma omp taskyield
     } while (hasDied(pos1));
     mPotentialMoves.insert(pos1);
 
@@ -339,6 +335,7 @@ void ProposalLocationLock::fillMove(AtomicProposal *prop, AtomicDomain *domain)
             pos2 = hood.hasLeft() ? hood.left->pos : 0;
         }
         watchForDeath(pos2);
+        #pragma omp taskyield
     }
     while (hasDied(pos3))
     {
@@ -348,6 +345,7 @@ void ProposalLocationLock::fillMove(AtomicProposal *prop, AtomicDomain *domain)
             pos3 = hood.hasRight() ? hood.right->pos : mDomainLength;
         }
         watchForDeath(pos3);
+        #pragma omp taskyield
     }
 
     // wait for neighbors to be in final position before selecting location
@@ -379,6 +377,7 @@ void ProposalLocationLock::fillExchange(AtomicProposal *prop, AtomicDomain *doma
             watchForDeath(pos1);
             watchForDeath(pos2);
         }
+        #pragma omp taskyield
     } while (hasDied(pos1));
 
     // make sure right neighbor hasn't been killed off by a previous proposal
@@ -394,6 +393,7 @@ void ProposalLocationLock::fillExchange(AtomicProposal *prop, AtomicDomain *doma
             pos2 = prop->atom2->pos;
         }
         watchForDeath(pos2);
+        #pragma omp taskyield
     }
 
     // make sure the needed row/col of the matrix are available

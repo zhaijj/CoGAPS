@@ -74,12 +74,20 @@ void GibbsSampler::update(unsigned nSteps, unsigned nCores)
 {
     uint64_t seed = mSeeder.next();
 
-    #pragma omp parallel for num_threads(nCores) schedule(static, 1)
-    for (unsigned n = 1; n <= nSteps; ++n)
+    //#pragma omp parallel for num_threads(nCores) schedule(static, 1)
+    omp_set_num_threads(nCores);
+    #pragma omp parallel
+    #pragma omp single
     {
-        AtomicProposal prop(mPropTypeLock.createProposal(seed, n));
-        mPropLocationLock.fillProposal(&prop, &mDomain, n);
-        processProposal(&prop);
+        for (unsigned n = 1; n <= nSteps; ++n)
+        {
+            #pragma omp task
+            {
+                AtomicProposal prop(mPropTypeLock.createProposal(seed, n));
+                mPropLocationLock.fillProposal(&prop, &mDomain, n);
+                processProposal(&prop);
+            }
+        }
     }
     mPropTypeLock.reset();
     mPropLocationLock.reset();
