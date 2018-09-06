@@ -15,7 +15,8 @@ public:
 
     template <class DataType>
     GibbsSampler(const DataType &data, bool transpose, unsigned nPatterns,
-        bool partitionRows, const std::vector<unsigned> &indices);
+        bool partitionRows, const std::vector<unsigned> &indices,
+        unsigned nThreads);
 
     template <class DataType>
     void setUncertainty(const DataType &unc, bool transposeData,
@@ -105,7 +106,7 @@ private:
 template <class DataType>
 GibbsSampler::GibbsSampler(const DataType &data,
 bool transposeData, unsigned nPatterns, bool partitionRows,
-const std::vector<unsigned> &indices)
+const std::vector<unsigned> &indices, unsigned nThreads)
     :
 mDMatrix(data, transposeData, partitionRows, indices),
 mSMatrix(gaps::algo::pmax(mDMatrix, 0.1f)),
@@ -121,7 +122,7 @@ mNumBins(mMatrix.nRow() * mMatrix.nCol()),
 mBinSize(std::numeric_limits<uint64_t>::max() / mNumBins),
 mDomainLength(mBinSize * mNumBins),
 mPropTypeLock(mMatrix.nRow(), mMatrix.nCol()),
-mPropLocationLock(mMatrix.nRow(), mMatrix.nCol())
+mPropLocationLock(mMatrix.nRow(), mMatrix.nCol(), nThreads)
 {
     // default sparsity parameters
     setSparsity(0.01, false);

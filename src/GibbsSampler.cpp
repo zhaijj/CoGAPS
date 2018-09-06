@@ -74,7 +74,7 @@ void GibbsSampler::update(unsigned nSteps, unsigned nCores)
 {
     uint64_t seed = mSeeder.next();
 
-    //#pragma omp parallel for num_threads(nCores) schedule(static, 1)
+    #pragma omp parallel for num_threads(nCores) schedule(static, 1)
     for (unsigned n = 1; n <= nSteps; ++n)
     {
         AtomicProposal prop(mPropTypeLock.createProposal(seed, n));
@@ -92,6 +92,7 @@ void GibbsSampler::update(unsigned nSteps, unsigned nCores)
 // or some other method of locking
 void GibbsSampler::processProposal(AtomicProposal *prop)
 {
+    uint64_t pos = 0;
     switch (prop->type)
     {
         case 'B':
@@ -107,7 +108,6 @@ void GibbsSampler::processProposal(AtomicProposal *prop)
             exchange(prop);
             break;
     }
-    mPropLocationLock.release(*prop);
 }
 
 // add an atom at a random position, calculate mass either with an
@@ -125,14 +125,25 @@ void GibbsSampler::birth(AtomicProposal *prop)
     // accept mass as long as it's non-zero
     if (mass >= gaps::epsilon)
     {
-        prop->atom1->mass = mass;
-        changeMatrix(row, col, mass);
+        // no change to atomic domain
         mPropTypeLock.acceptBirth();
+        mPropLocationLock.rejectDeath(prop->atom1->pos);
+        prop->atom1->mass = mass;
+
+        // change matrix
+        changeMatrix(row, col, mass);
+        mPropLocationLock.releaseIndex(row);
     }
     else
     {
-        mDomain.erase(prop->atom1->pos);
+        // no change to matrix
+        mPropLocationLock.releaseIndex(row);
+
+        // change atomic domain
         mPropTypeLock.rejectBirth();
+        uint64_t pos = prop->atom1->pos;
+        mDomain.erase(pos);
+        mPropLocationLock.acceptDeath(pos);
     }
 }
 
@@ -161,18 +172,30 @@ void GibbsSampler::death(AtomicProposal *prop)
     float deltaLL = getDeltaLL(alpha, rebirthMass) * mAnnealingTemp;
     if (std::log(prop->rng.uniform()) < deltaLL)
     {
-        if (rebirthMass != prop->atom1->mass)
-        {
-            safelyChangeMatrix(row, col, rebirthMass - prop->atom1->mass);
-            prop->atom1->mass = rebirthMass;
-        }
+        // no change to atomic domain
         mPropTypeLock.rejectDeath();
+        mPropLocationLock.rejectDeath(prop->atom1->pos);
+        float origMass = prop->atom1->mass;
+        prop->atom1->mass = rebirthMass;
+
+        // change matrix
+        if (rebirthMass != origMass)
+        {
+            safelyChangeMatrix(row, col, rebirthMass - origMass);
+        }
+        mPropLocationLock.releaseIndex(row);
     }
     else
     {
-        safelyChangeMatrix(row, col, -prop->atom1->mass);
-        mDomain.erase(prop->atom1->pos);
+        // change to atomic domain
         mPropTypeLock.acceptDeath();
+        uint64_t pos = prop->atom1->pos;
+        mDomain.erase(pos);
+        mPropLocationLock.acceptDeath(pos);
+
+        // change to matrix
+        safelyChangeMatrix(row, col, -prop->atom1->mass);
+        mPropLocationLock.releaseIndex(row);
     }
 }
 
@@ -184,21 +207,24 @@ void GibbsSampler::move(AtomicProposal *prop)
     unsigned r2 = getRow(prop->pos);
     unsigned c2 = getCol(prop->pos);
 
+    uint64_t pos = prop->atom1->pos;
     if (r1 == r2 && c1 == c2)
     {
         prop->atom1->pos = prop->pos;
-        return;
     }
-    
-    AlphaParameters alpha = alphaParameters(r1, c1, r2, c2);
-    if (std::log(prop->rng.uniform()) < getDeltaLL(alpha, -prop->atom1->mass) * mAnnealingTemp)
+    else
     {
-        uint64_t old = prop->atom1->pos;
-        prop->atom1->pos = prop->pos;
-        prop->pos = old; // needed for the proposal lock
-        safelyChangeMatrix(r1, c1, -prop->atom1->mass);
-        changeMatrix(r2, c2, prop->atom1->mass);
+        AlphaParameters alpha = alphaParameters(r1, c1, r2, c2);
+        if (std::log(prop->rng.uniform()) < getDeltaLL(alpha, -prop->atom1->mass) * mAnnealingTemp)
+        {
+            prop->atom1->pos = prop->pos;
+            safelyChangeMatrix(r1, c1, -prop->atom1->mass);
+            changeMatrix(r2, c2, prop->atom1->mass);
+        }
     }
+    mPropLocationLock.finishMove(pos);
+    mPropLocationLock.releaseIndex(r1);
+    mPropLocationLock.releaseIndex(r2);
 }
 
 // exchange some amount of mass between two positions, note it is possible
@@ -212,7 +238,8 @@ void GibbsSampler::exchange(AtomicProposal *prop)
 
     if (r1 == r2 && c1 == c2)
     {
-        mPropTypeLock.rejectDeath();
+        mPropLocationLock.releaseIndex(r1);
+        mPropLocationLock.releaseIndex(r2);
         return;
     }
 
@@ -262,6 +289,8 @@ AlphaParameters alpha, unsigned r1, unsigned c1, unsigned r2, unsigned c2)
         acceptExchange(prop->atom1, prop->atom2, delta, r1, c1, r2, c2);
         return;
     }
+    mPropLocationLock.releaseIndex(r1);
+    mPropLocationLock.releaseIndex(r2);
 }
 
 // helper function for exchange step
@@ -272,9 +301,12 @@ unsigned r1, unsigned c1, unsigned r2, unsigned c2)
     {
         a1->mass += delta;
         a2->mass -= delta;
+
+        changeMatrix(r1, c1, delta);
+        changeMatrix(r2, c2, -delta);
     }
-    changeMatrix(r1, c1, delta);
-    changeMatrix(r2, c2, -delta);
+    mPropLocationLock.releaseIndex(r1);
+    mPropLocationLock.releaseIndex(r2);
 }
 
 // helper function for acceptExchange, used to conditionally update the mass

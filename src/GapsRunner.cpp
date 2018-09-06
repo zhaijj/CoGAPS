@@ -78,17 +78,6 @@ GapsResult GapsRunner::run(bool printThreads)
 {
     mStartTime = bpt_now();
 
-    // calculate appropiate number of threads if compiled with openmp
-    #ifdef __GAPS_OPENMP__
-    if (mPrintMessages && printThreads)
-    {
-        unsigned availableThreads = omp_get_max_threads();
-        mMaxThreads = gaps::min(availableThreads, mMaxThreads);
-        gaps_printf("Running on %d out of %d available threads\n",
-            mMaxThreads, availableThreads);
-    }
-    #endif
-
     // cascade through phases, allows algorithm to be resumed in either phase
     GAPS_ASSERT(mPhase == 'C' || mPhase == 'S');
     switch (mPhase)

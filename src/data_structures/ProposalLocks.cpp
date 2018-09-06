@@ -1,5 +1,11 @@
 #include "ProposalLocks.h"
 
+template <class Tp>
+static void DoNotOptimize(Tp const& value)
+{
+    __asm__ __volatile__("" : : "g"(value) : "memory");
+}
+
 ////////////////////////////// AtomicProposal //////////////////////////////////
 
 AtomicProposal::AtomicProposal(uint64_t seed, uint64_t id)
@@ -23,54 +29,36 @@ void ProposalTypeLock::setAlpha(double alpha)
     mAlpha = alpha;
 }
 
-// TODO use boost conditional variables to wait
-static void busyWait()
-{
-    volatile unsigned a;
-    for (unsigned i = 0; i < 10; ++i)
-    {
-        a = i;
-    }
-}
-
 AtomicProposal ProposalTypeLock::createProposal(uint64_t seed, uint64_t id)
 {   
-    GAPS_ASSERT(mMinAtoms == mMaxAtoms);
     AtomicProposal prop(seed, id);
+    float u1 = prop.rng.uniform();
+    float u2 = prop.rng.uniform();
 
-    // wait for turn - proposals are created in order
-    //while (mLastProcessed != id - 1)
-    //{
-    //    busyWait();
-    //}
+    waitForTurn(id);
 
     // special indeterminate case
     //while (mMinAtoms < 2 && mMaxAtoms >= 2)
     //{
-    //    busyWait();
+
     //}
 
-    // check special condition
-    if (mMaxAtoms < 2)
+    if (mMaxAtoms < 2) // always birth with 0 or 1 atom
     {
         prop.type = 'B';
         possibleBirth();
-        ++mLastProcessed;
-        return prop;
     }
-
-    // decide between birth/death
-    float u1 = prop.rng.uniform();
-    if (u1 < 0.5f)
+    else if (u1 < 0.5f) // decide between birth/death
     {
+        // wait until we can determine birth/death
         float lowerBound = deathProb(static_cast<double>(mMinAtoms));
         float upperBound = deathProb(static_cast<double>(mMaxAtoms));
-
-        float u2 = prop.rng.uniform();
-        //while (u2 > lowerBound && u2 < upperBound)
-        //{
-        //    busyWait();
-        //}
+        while (lowerBound < u2 && u2 < upperBound)
+        {
+            DoNotOptimize(mMinAtoms);
+            lowerBound = deathProb(static_cast<double>(mMinAtoms));
+            upperBound = deathProb(static_cast<double>(mMaxAtoms));
+        }
 
         if (u2 < lowerBound)
         {
@@ -82,40 +70,59 @@ AtomicProposal ProposalTypeLock::createProposal(uint64_t seed, uint64_t id)
             prop.type = 'B';
             possibleBirth();
         }
-        ++mLastProcessed;
-        return prop;
+    }
+    else // decide between move/exchange
+    {
+        prop.type = (u1 < 0.75f) ? 'M' : 'E';
     }
 
-    // decide between move/exchange
-    prop.type = (u1 < 0.75f) ? 'M' : 'E';
-    ++mLastProcessed;
+    finishTurn();
     return prop;
 }
 
 void ProposalTypeLock::reset()
 {
-    mLastProcessed = 0;
     GAPS_ASSERT(mMinAtoms == mMaxAtoms);
+
+    mLastProcessed = 0;
 }
 
 void ProposalTypeLock::rejectBirth()
 {
+    #pragma omp atomic
     --mMaxAtoms;
 }
 
 void ProposalTypeLock::acceptBirth()
 {
+    #pragma omp atomic
     ++mMinAtoms;
 }
 
 void ProposalTypeLock::rejectDeath()
 {
+    #pragma omp atomic
     ++mMinAtoms;
 }
 
 void ProposalTypeLock::acceptDeath()
 {
+    #pragma omp atomic
     --mMaxAtoms;
+}
+
+void ProposalTypeLock::waitForTurn(unsigned id)
+{
+    while (mLastProcessed < id - 1)
+    {
+        DoNotOptimize(mLastProcessed);
+    }
+}
+
+void ProposalTypeLock::finishTurn()
+{
+    #pragma omp atomic
+    ++mLastProcessed;
 }
 
 float ProposalTypeLock::deathProb(double nAtoms) const
@@ -136,76 +143,22 @@ void ProposalTypeLock::possibleDeath()
 
 /////////////////////////// ProposalLocationLock ///////////////////////////////
 
-ProposalLocationLock::ProposalLocationLock(unsigned nrow, unsigned npat)
+ProposalLocationLock::ProposalLocationLock(unsigned nrow, unsigned npat,
+unsigned nThreads)
     :
-mUsedIndices(nrow)
+mUsedMatrixIndices(nrow), mPotentialDeaths(nThreads),
+mPotentialMoves(nThreads), mDeathCanaries(nThreads)
 {
-    mBinSize = std::numeric_limits<uint64_t>::max() / 
-        static_cast<uint64_t>(nrow * npat);
+    mBinSize = std::numeric_limits<uint64_t>::max() / static_cast<uint64_t>(nrow * npat);
     mNumPatterns = npat;
     mDomainLength = mBinSize * static_cast<uint64_t>(nrow * npat);
     mRowLength = mBinSize * mNumPatterns;
 }
 
-void ProposalLocationLock::reset()
-{
-    mLastProcessed = 0;
-}
-
-// TODO block on positions as well
-
-void ProposalLocationLock::waitOnIndex(uint64_t pos)
-{
-    unsigned ndx = pos / mRowLength; // row length = bin size * nPatterns
-    //while (mUsedIndices.contains(ndx))
-    //{
-    //    busyWait();
-    //}
-    mUsedIndices.insert(ndx);
-}
-
-void ProposalLocationLock::waitOnPosition(uint64_t pos)
-{
-    while (mUsedPositions.contains(pos)) { busyWait(); }
-}
-
-void ProposalLocationLock::release(const AtomicProposal &prop)
-{
-    mUsedIndices.erase(prop.atom1->pos / mRowLength);
-    switch (prop.type)
-    {
-        case 'M':
-            mUsedIndices.erase(prop.pos / mRowLength);
-            break;
-        case 'E':
-            mUsedIndices.erase(prop.atom2->pos / mRowLength);
-            break;
-        default:
-            break;
-    }            
-}
-
-bool ProposalLocationLock::hasDied(uint64_t pos)
-{
-    while (mDeathPositions.contains(pos1))
-    {
-        busyWait();
-    }
-    return mDeaths.pop(pos); // gets and erases
-}
-
-void ProposalLocationLock::waitUntilMoveResolved
-{
-    while (mDeathPositions.contains(pos1))
-    {
-        busyWait();
-    }
-}
-
 void ProposalLocationLock::fillProposal(AtomicProposal *prop,
 AtomicDomain *domain, unsigned id)
 {
-    waitForTurn(); // proposals are created in order
+    waitForTurn(id); // proposals are created in order
     switch (prop->type)
     {
         case 'B':
@@ -224,18 +177,120 @@ AtomicDomain *domain, unsigned id)
     finishTurn();
 }
 
-void ProposalLocationLock::fillBirth(AtomicProposal *prop, AtomicDomain *dom)
+void ProposalLocationLock::waitForTurn(unsigned id)
 {
-    // add an empty atom to a random position
-    pos = domain->randomFreePosition(&(prop->rng));
-    GAPS_ASSERT(pos > 0);
-    prop->atom1 = domain->insert(pos, 0.f);
-
-    // make sure the needed row/col of the matrix are available
-    waitOnIndex(prop->atom1->pos);
+    while (mLastProcessed < id - 1)
+    {
+        DoNotOptimize(mLastProcessed);
+    }
 }
 
-void ProposalLocationLock::fillDeath(AtomicProposal *prop, AtomicDomain *dom)
+void ProposalLocationLock::finishTurn()
+{
+    #pragma omp atomic
+    ++mLastProcessed;
+}
+
+void ProposalLocationLock::rejectDeath(uint64_t pos)
+{
+    GAPS_ASSERT(mPotentialDeaths.contains(pos));
+    mPotentialDeaths.erase(pos);
+}
+
+void ProposalLocationLock::acceptDeath(uint64_t pos)
+{
+    GAPS_ASSERT(mPotentialDeaths.contains(pos));
+    mPotentialDeaths.erase(pos);
+    mDeathCanaries.signal(pos);
+}
+
+void ProposalLocationLock::finishMove(uint64_t pos)
+{
+    mPotentialMoves.erase(pos);
+}
+
+void ProposalLocationLock::releaseIndex(unsigned index)
+{
+    mUsedMatrixIndices.erase(index);
+}
+
+void ProposalLocationLock::reset()
+{
+    GAPS_ASSERT(mUsedMatrixIndices.isEmpty());
+    GAPS_ASSERT(mPotentialMoves.isEmpty());
+    GAPS_ASSERT(mPotentialDeaths.isEmpty());
+    GAPS_ASSERT(mDeathCanaries.isEmpty());
+
+    mLastProcessed = 0;
+}
+
+// data mutex on matrix rows/cols
+void ProposalLocationLock::waitOnMatrixIndex(uint64_t pos)
+{
+    unsigned index = pos / mRowLength;
+    while (mUsedMatrixIndices.contains(index))
+    {
+        DoNotOptimize(index);
+    }
+    mUsedMatrixIndices.insert(index);
+}
+
+// data mutex on matrix rows/cols
+void ProposalLocationLock::waitOnMatrixIndex(uint64_t p1, uint64_t p2)
+{
+    unsigned ndx1 = p1 / mRowLength;
+    unsigned ndx2 = p2 / mRowLength;
+    while (mUsedMatrixIndices.contains(ndx1) || mUsedMatrixIndices.contains(ndx2))
+    {
+        DoNotOptimize(ndx1);
+    }
+    mUsedMatrixIndices.insert(ndx1);
+    mUsedMatrixIndices.insert(ndx2);
+}
+
+void ProposalLocationLock::waitUntilMoveResolved(uint64_t pos)
+{
+    while (mPotentialMoves.contains(pos))
+    {
+        DoNotOptimize(pos);
+    }
+}
+
+void ProposalLocationLock::watchForDeath(uint64_t pos)
+{
+    mDeathCanaries.listen(pos);
+}
+
+bool ProposalLocationLock::hasDied(uint64_t pos)
+{
+    while (mPotentialDeaths.contains(pos))
+    {
+        DoNotOptimize(pos);
+    }
+    return mDeathCanaries.pop(pos);
+}
+
+void ProposalLocationLock::ignoreDeath(uint64_t pos)
+{
+    mDeathCanaries.pop(pos);
+}
+
+void ProposalLocationLock::fillBirth(AtomicProposal *prop, AtomicDomain *domain)
+{
+    // add an empty atom to a random position
+    uint64_t pos = 0;
+    #pragma omp critical(AtomicInsertOrErase)
+    {
+        pos = domain->randomFreePosition(&(prop->rng));
+    }
+    prop->atom1 = domain->insert(pos, 0.f);
+    mPotentialDeaths.insert(prop->atom1->pos);
+
+    // make sure the needed row/col of the matrix are available
+    waitOnMatrixIndex(prop->atom1->pos);
+}
+
+void ProposalLocationLock::fillDeath(AtomicProposal *prop, AtomicDomain *domain)
 {
     uint64_t pos = 0;
     do
@@ -244,73 +299,104 @@ void ProposalLocationLock::fillDeath(AtomicProposal *prop, AtomicDomain *dom)
         {
             prop->atom1 = domain->randomAtom(&(prop->rng));
             pos = prop->atom1->pos;
+            watchForDeath(pos);
         }
-    } while (hadDied(pos));
-    mDeathPositions.insert(prop->atom1->pos);
+    } while (hasDied(pos));
+    mPotentialDeaths.insert(prop->atom1->pos);
 
     // make sure the needed row/col of the matrix are available
-    waitOnIndex(prop->atom1->pos);
+    waitOnMatrixIndex(prop->atom1->pos);
 }
 
-void ProposalLocationLock::fillMove(AtomicProposal *prop, AtomicDomain *dom)
+void ProposalLocationLock::fillMove(AtomicProposal *prop, AtomicDomain *domain)
 {
+    AtomNeighborhood hood;
     uint64_t pos1 = 0, pos2 = 0, pos3 = 0;
     do
     {
+        ignoreDeath(pos2);
+        ignoreDeath(pos3);
+    
         #pragma omp critical(AtomicInsertOrErase)
         {
             hood = domain->randomAtomWithNeighbors(&(prop->rng));
-            prop->atom1 = hood.center;
-            pos1 = prop->atom1->pos;
+            pos1 = hood.center->pos;
             pos2 = hood.hasLeft() ? hood.left->pos : 0;
             pos3 = hood.hasRight() ? hood.right->pos : mDomainLength;
+            watchForDeath(pos1);
+            watchForDeath(pos2);
+            watchForDeath(pos3);
         }
     } while (hasDied(pos1));
-    mMovePositions.insert(prop->atom1->pos);
+    mPotentialMoves.insert(pos1);
 
     // make sure neighbors haven't been killed off by a previous proposal
     while (hasDied(pos2))
     {
-        pos2 = domain->getLeftNeighbor(prop->atom1->pos)->pos
+        #pragma omp critical(AtomicInsertOrErase)
+        {
+            hood.left = domain->getLeftNeighbor(hood.center->pos);
+            pos2 = hood.hasLeft() ? hood.left->pos : 0;
+        }
+        watchForDeath(pos2);
     }
     while (hasDied(pos3))
     {
-        pos3 = domain->getRightNeighbor(prop->atom1->pos)->pos
+        #pragma omp critical(AtomicInsertOrErase)
+        {
+            hood.right = domain->getRightNeighbor(hood.center->pos);
+            pos3 = hood.hasRight() ? hood.right->pos : mDomainLength;
+        }
+        watchForDeath(pos3);
     }
 
     // wait for neighbors to be in final position before selecting location
     waitUntilMoveResolved(pos2);
     waitUntilMoveResolved(pos3);
+    pos2 = hood.hasLeft() ? hood.left->pos : 0;
+    pos3 = hood.hasRight() ? hood.right->pos : mDomainLength;
     prop->pos = prop->rng.uniform64(pos2 + 1, pos3 - 1);
+    prop->atom1 = hood.center;
 
     // make sure the needed row/col of the matrix are available
-    waitOnIndex(prop->atom1->pos);
-    waitOnIndex(prop->pos);
+    waitOnMatrixIndex(prop->atom1->pos, prop->pos);
 }
 
-void ProposalLocationLock::fillExchange(AtomicProposal *prop, AtomicDomain *dom)
+void ProposalLocationLock::fillExchange(AtomicProposal *prop, AtomicDomain *domain)
 {
     uint64_t pos1 = 0, pos2 = 0;
     do
     {
+        ignoreDeath(pos2);
+
         #pragma omp critical(AtomicInsertOrErase)
         {
-            hood = domain->randomAtomWithRightNeighbor(&(prop->rng));
+            AtomNeighborhood hood = domain->randomAtomWithRightNeighbor(&(prop->rng));
             prop->atom1 = hood.center;
             prop->atom2 = hood.hasRight() ? hood.right : domain->front();
             pos1 = prop->atom1->pos;
             pos2 = prop->atom2->pos;
+            watchForDeath(pos1);
+            watchForDeath(pos2);
         }
     } while (hasDied(pos1));
 
     // make sure right neighbor hasn't been killed off by a previous proposal
     while (hasDied(pos2))
     {
-        pos2 = domain->getRightNeighbor(prop->atom1->pos)->pos
+        #pragma omp critical(AtomicInsertOrErase)
+        {
+            prop->atom2 = domain->getRightNeighbor(prop->atom1->pos);
+            if (prop->atom2 == NULL)
+            {
+                prop->atom2 = domain->front();
+            }
+            pos2 = prop->atom2->pos;
+        }
+        watchForDeath(pos2);
     }
 
     // make sure the needed row/col of the matrix are available
-    waitOnIndex(prop->atom1->pos);
-    waitOnIndex(prop->atom2->pos);
+    waitOnMatrixIndex(prop->atom1->pos, prop->atom2->pos);
 }
 

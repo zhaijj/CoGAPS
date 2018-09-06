@@ -53,7 +53,7 @@ public:
     template <class DataType>
     GapsRunner(const DataType &data, bool transposeData, unsigned nPatterns,
         bool partitionRows, const std::vector<unsigned> &indices,
-        uint32_t seed);
+        uint32_t seed, unsigned maxThreads);
 
     template <class DataType>
     void setUncertainty(const DataType &unc, bool transposeData,
@@ -83,12 +83,12 @@ public:
 template <class DataType>
 GapsRunner::GapsRunner(const DataType &data, bool transposeData,
 unsigned nPatterns, bool partitionRows, const std::vector<unsigned> &indices,
-uint32_t seed)
+uint32_t seed, unsigned maxThreads)
     :
-mASampler(data, !transposeData, nPatterns,!partitionRows, indices),
-mPSampler(data, transposeData, nPatterns, partitionRows, indices),
+mASampler(data, !transposeData, nPatterns,!partitionRows, indices, maxThreads),
+mPSampler(data, transposeData, nPatterns, partitionRows, indices, maxThreads),
 mStatistics(mPSampler.dataRows(), mPSampler.dataCols(), nPatterns),
-mFixedMatrix('N'), mMaxIterations(1000), mMaxThreads(1), mPrintMessages(true),
+mFixedMatrix('N'), mMaxIterations(1000), mMaxThreads(maxThreads), mPrintMessages(true),
 mOutputFrequency(500), mCheckpointOutFile("gaps_checkpoint.out"),
 mCheckpointInterval(0), mPhase('C'), mCurrentIteration(0),
 mNumPatterns(nPatterns), mSeed(seed), mNumUpdatesA(0), mNumUpdatesP(0),

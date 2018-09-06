@@ -132,13 +132,41 @@ AtomNeighborhood AtomicDomain::randomAtomWithRightNeighbor(GapsRng *rng)
     return AtomNeighborhood(NULL, mAtoms[index], right);
 }
 
+Atom* AtomicDomain::getLeftNeighbor(uint64_t pos)
+{
+    GAPS_ASSERT(vecContains(mAtoms, pos));
+
+    std::vector<Atom*>::iterator it;
+    it = std::lower_bound(mAtoms.begin(), mAtoms.end(), pos, compareAtomLower);
+    if (it == mAtoms.begin())
+    {
+        return NULL;
+    }
+    --it;
+    return *it;
+}
+
+Atom* AtomicDomain::getRightNeighbor(uint64_t pos)
+{
+    GAPS_ASSERT(vecContains(mAtoms, pos));
+
+    std::vector<Atom*>::iterator it;
+    it = std::lower_bound(mAtoms.begin(), mAtoms.end(), pos, compareAtomLower);
+    ++it;
+    if (it == mAtoms.end())
+    {
+        return NULL;
+    }
+    return *it;
+}
+
 uint64_t AtomicDomain::randomFreePosition(GapsRng *rng) const
 {
-    uint64_t pos = rng->uniform64(0, mDomainLength);
+    uint64_t pos = rng->uniform64(1, mDomainLength);
     while (vecContains(mAtoms, pos))
     {
-        pos = rng->uniform64(0, mDomainLength);
-    } 
+        pos = rng->uniform64(1, mDomainLength);
+    }
     return pos;
 }
 
@@ -153,11 +181,11 @@ void AtomicDomain::erase(uint64_t pos)
     GAPS_ASSERT(vecContains(mAtoms, pos));
 
     std::vector<Atom*>::iterator it;
-    it = std::lower_bound(mAtoms.begin(), mAtoms.end(), pos, compareAtomLower);
-    Atom *a = *it;
-
+    Atom *a = NULL;
     #pragma omp critical(AtomicInsertOrErase)
     {
+        it = std::lower_bound(mAtoms.begin(), mAtoms.end(), pos, compareAtomLower);
+        Atom *a = *it;
         mAtoms.erase(it);
     }
     delete a;
@@ -165,15 +193,13 @@ void AtomicDomain::erase(uint64_t pos)
 
 Atom* AtomicDomain::insert(uint64_t pos, float mass)
 {
-    std::vector<Atom*>::iterator it;
-    it = std::lower_bound(mAtoms.begin(), mAtoms.end(), pos, compareAtomLower);
     Atom *newAtom = new Atom(pos, mass);
-
+    std::vector<Atom*>::iterator it;
     #pragma omp critical(AtomicInsertOrErase)
     {
+        it = std::lower_bound(mAtoms.begin(), mAtoms.end(), pos, compareAtomLower);
         it = mAtoms.insert(it, newAtom);
     }
-    
     return *it;
 }
 

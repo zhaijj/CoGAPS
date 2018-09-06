@@ -6,6 +6,10 @@
 #include <string>
 #include <sstream>
 
+#ifdef __GAPS_OPENMP__
+#include <omp.h>
+#endif
+
 // these are helper functions for converting matrix/vector types
 // to and from R objects
 
@@ -103,10 +107,22 @@ const Rcpp::Nullable<Rcpp::NumericMatrix> &fixedMatrix, bool isMaster)
     bool printThreads = !processDistributedParameters(allParams).first;
     bool partitionRows = processDistributedParameters(allParams).second;
     std::vector<unsigned> cIndices(getSubsetIndices(indices));
+    unsigned nThreads = allParams["nThreads"];
+
+    // calculate appropiate number of threads if compiled with openmp
+    #ifdef __GAPS_OPENMP__
+    if (allParams["messages"] && isMaster && printThreads)
+    {
+        unsigned availableThreads = omp_get_max_threads();
+        nThreads = gaps::min(availableThreads, nThreads);
+        gaps_printf("Running on %d out of %d available threads\n",
+            nThreads, availableThreads);
+    }
+    #endif
 
     // construct GapsRunner
     GapsRunner runner(data, allParams["transposeData"], nPatterns,
-        partitionRows, cIndices, gapsParams.slot("seed"));
+        partitionRows, cIndices, gapsParams.slot("seed"), nThreads);
 
     // set uncertainty
     if (!isNull(uncertainty))

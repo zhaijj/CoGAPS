@@ -26,17 +26,16 @@ class ProposalTypeLock
 public:
 
     ProposalTypeLock(unsigned nrow, unsigned npat);
-
     void setAlpha(double alpha);
 
     AtomicProposal createProposal(uint64_t seed, uint64_t id);
+
+    void reset();
 
     void rejectBirth();
     void acceptBirth();
     void rejectDeath();
     void acceptDeath();
-
-    void reset();
 
 private:
 
@@ -49,6 +48,9 @@ private:
     unsigned mMinAtoms;
     unsigned mMaxAtoms;
 
+    void waitForTurn(unsigned id);
+    void finishTurn();
+
     float deathProb(double nAtoms) const;
 
     void possibleBirth();
@@ -59,21 +61,38 @@ class ProposalLocationLock
 {
 public:
 
-    ProposalLocationLock(unsigned nrow, unsigned npat);
+    ProposalLocationLock(unsigned nrow, unsigned npat, unsigned nThreads);
 
     void fillProposal(AtomicProposal *prop, AtomicDomain *domain, unsigned id);
 
-    void waitOnIndex(uint64_t pos);
-    void release(const AtomicProposal &prop);
+    void rejectDeath(uint64_t pos);
+    void acceptDeath(uint64_t pos);
+    void finishMove(uint64_t pos);
+
+    void releaseIndex(unsigned index);
     void reset();
 
 private:
-    
-    bool sameBin(uint64_t p1, uint64_t p2);
 
-    FixedHashSetU32 mUsedIndices;
-    HashSetU64 mDeathPositions;
-    HashSetU64 mMovePositions;
+    void waitForTurn(unsigned id);
+    void finishTurn();
+
+    void waitOnMatrixIndex(uint64_t pos);
+    void waitOnMatrixIndex(uint64_t p1, uint64_t p2);
+    void waitUntilMoveResolved(uint64_t pos);
+    void watchForDeath(uint64_t pos);
+    bool hasDied(uint64_t pos);
+    void ignoreDeath(uint64_t pos);
+
+    void fillBirth(AtomicProposal *prop, AtomicDomain *domain);
+    void fillDeath(AtomicProposal *prop, AtomicDomain *domain);
+    void fillMove(AtomicProposal *prop, AtomicDomain *domain);
+    void fillExchange(AtomicProposal *prop, AtomicDomain *domain);
+
+    FixedHashSetU32 mUsedMatrixIndices;
+    SmallHashSetU64 mPotentialDeaths;
+    SmallHashSetU64 mPotentialMoves;
+    CanaryHashSetU64 mDeathCanaries;
 
     uint64_t mLastProcessed;
 

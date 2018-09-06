@@ -46,6 +46,9 @@ public:
     AtomNeighborhood randomAtomWithNeighbors(GapsRng *rng);
     AtomNeighborhood randomAtomWithRightNeighbor(GapsRng *rng);
 
+    Atom* getLeftNeighbor(uint64_t pos);
+    Atom* getRightNeighbor(uint64_t pos);
+
     uint64_t randomFreePosition(GapsRng *rng) const;
     uint64_t size() const;
 
@@ -68,4 +71,4 @@ private:
     std::vector<Atom*> mAtoms;
 };
 
-#endif
+#endif // __COGAPS_ATOMIC_DOMAIN_H__
