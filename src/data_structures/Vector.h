@@ -38,6 +38,7 @@ public:
     void operator/=(float val);
 
     void concat(const Vector& vec);
+    float sparsity() const;
 
     friend Archive& operator<<(Archive &ar, Vector &vec);
     friend Archive& operator>>(Archive &ar, Vector &vec);

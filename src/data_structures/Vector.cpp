@@ -13,6 +13,19 @@ void Vector::concat(const Vector& vec)
     mValues.insert(mValues.end(), vec.mValues.begin(), vec.mValues.end());
 }
 
+float Vector::sparsity() const
+{
+    float nZeros = 0.f;
+    for (unsigned i = 0; i < size(); ++i)
+    {
+        if (mValues[i] == 0.f)
+        {
+            nZeros += 1.f;
+        }
+    }
+    return nZeros / static_cast<float>(mValues.size());
+}
+
 void Vector::operator+=(const Vector &vec)
 {
     for (unsigned i = 0; i < size(); ++i)

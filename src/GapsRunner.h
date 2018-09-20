@@ -21,6 +21,11 @@ struct GapsResult
     float meanChiSq;
     uint32_t seed;
 
+    float avgASparsity;
+    float avgAPColSparsity;
+    float avgPSparsity;
+    float avgAPRowSparsity;
+
     GapsResult(const GapsStatistics &stat) :
         Amean(stat.Amean()), Asd(stat.Asd()), Pmean(stat.Pmean()),
         Psd(stat.Psd()), meanChiSq(0.f), seed(0)

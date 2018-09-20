@@ -115,6 +115,11 @@ GapsResult GapsRunner::run(bool printThreads)
     }
     GapsResult result(mStatistics);
     result.meanChiSq = mStatistics.meanChiSq(mASampler);
+    result.avgASparsity = mPSampler.AverageASparsity();
+    result.avgAPColSparsity = mPSampler.AverageAPSparsity();
+    result.avgPSparsity = mASampler.AveragePSparsity();
+    result.avgAPRowSparsity = mASampler.AverageAPSparsity();
+
     return result;    
 }
 

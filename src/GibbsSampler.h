@@ -57,6 +57,11 @@ protected:
     float mAvgQueue;
     float mNumQueues;
 
+    float mAvgASparsity;
+    float mAvgPSparsity;
+    float mAvgAPSparsity;
+    float mNumAlphaCalls;
+
     T* impl();
 
     void processProposal(AtomicProposal *prop);
@@ -86,6 +91,10 @@ public:
     void setSparsity(float alpha, bool singleCell);
     void setMaxGibbsMass(float max);
     void setAnnealingTemp(float temp);
+
+    float AverageASparsity() const;
+    float AveragePSparsity() const;
+    float AverageAPSparsity() const;
 
     void setMatrix(const Matrix &mat);
 
@@ -204,6 +213,11 @@ mDomain(mMatrix.nRow() * mMatrix.nCol()), mLambda(0.f),
 mMaxGibbsMass(100.f), mAnnealingTemp(1.f), mNumRows(mMatrix.nRow()),
 mNumCols(mMatrix.nCol()), mAvgQueue(0.f), mNumQueues(0.f)
 {
+    mAvgASparsity = 0.f;
+    mAvgPSparsity = 0.f;
+    mAvgAPSparsity = 0.f;
+    mNumAlphaCalls = 0.f;
+
     // calculate atomic domain size
     mBinSize = std::numeric_limits<uint64_t>::max()
         / static_cast<uint64_t>(mNumRows * mNumCols);
@@ -232,6 +246,24 @@ void GibbsSampler<T, MatA, MatB>::setSparsity(float alpha, bool singleCell)
         mMatrix.nRow();
 
     mLambda = alpha * std::sqrt(nPatterns / meanD);
+}
+
+template <class T, class MatA, class MatB>
+float GibbsSampler<T, MatA, MatB>::AverageASparsity() const
+{
+    return mAvgASparsity;
+}
+
+template <class T, class MatA, class MatB>
+float GibbsSampler<T, MatA, MatB>::AveragePSparsity() const
+{
+    return mAvgPSparsity;
+}
+
+template <class T, class MatA, class MatB>
+float GibbsSampler<T, MatA, MatB>::AverageAPSparsity() const
+{
+    return mAvgAPSparsity;
 }
 
 template <class T, class MatA, class MatB>

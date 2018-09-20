@@ -170,7 +170,12 @@ const Rcpp::Nullable<Rcpp::NumericMatrix> &fixedMatrix, bool isMaster)
         Rcpp::Named("meanChiSq") = result.meanChiSq,
         Rcpp::Named("geneNames") = allParams["geneNames"],
         Rcpp::Named("sampleNames") = allParams["sampleNames"],
-        Rcpp::Named("diagnostics") = Rcpp::List::create()
+        Rcpp::Named("diagnostics") = Rcpp::List::create(
+            Rcpp::Named("sparsityA") = result.avgASparsity,
+            Rcpp::Named("sparsityP") = result.avgPSparsity,
+            Rcpp::Named("sparsityAP_row") = result.avgAPRowSparsity,
+            Rcpp::Named("sparsityAP_col") = result.avgAPColSparsity
+            )
     );
 }
 

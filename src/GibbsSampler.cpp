@@ -1,6 +1,11 @@
 #include "GibbsSampler.h"
 #include "math/SIMD.h"
 
+static void updateAverage(float &n, float &avg, float val)
+{
+    avg = (avg * n - avg + val) / n;
+}
+
 /******************** AmplitudeGibbsSampler Implementation ********************/
 
 void AmplitudeGibbsSampler::sync(PatternGibbsSampler &sampler, unsigned nCores)
@@ -60,6 +65,10 @@ void AmplitudeGibbsSampler::updateAPMatrix(unsigned row, unsigned col, float del
 
 AlphaParameters AmplitudeGibbsSampler::alphaParameters(unsigned row, unsigned col)
 {
+    mNumAlphaCalls += 1.f;
+    updateAverage(mNumAlphaCalls, mAvgPSparsity, mOtherMatrix->getRow(col).sparsity());
+    updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getRow(row).sparsity());
+
     return gaps::algo::alphaParameters(mDMatrix.nCol(), mDMatrix.rowPtr(row),
         mSMatrix.rowPtr(row), mAPMatrix.rowPtr(row), mOtherMatrix->rowPtr(col));
 }
@@ -69,6 +78,14 @@ unsigned r2, unsigned c2)
 {
     if (r1 == r2)
     {
+        mNumAlphaCalls += 1.f;
+        updateAverage(mNumAlphaCalls, mAvgPSparsity, mOtherMatrix->getRow(c1).sparsity());
+        updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getRow(r1).sparsity());
+
+        mNumAlphaCalls += 1.f;
+        updateAverage(mNumAlphaCalls, mAvgPSparsity, mOtherMatrix->getRow(c2).sparsity());
+        updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getRow(r2).sparsity());
+
         return gaps::algo::alphaParameters(mDMatrix.nCol(), mDMatrix.rowPtr(r1),
             mSMatrix.rowPtr(r1), mAPMatrix.rowPtr(r1), mOtherMatrix->rowPtr(c1),
             mOtherMatrix->rowPtr(c2));
@@ -78,6 +95,10 @@ unsigned r2, unsigned c2)
 
 float AmplitudeGibbsSampler::computeDeltaLL(unsigned row, unsigned col, float mass)
 {
+    mNumAlphaCalls += 1.f;
+    updateAverage(mNumAlphaCalls, mAvgPSparsity, mOtherMatrix->getRow(col).sparsity());
+    updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getRow(row).sparsity());
+
     return gaps::algo::deltaLL(mDMatrix.nCol(), mDMatrix.rowPtr(row),
         mSMatrix.rowPtr(row), mAPMatrix.rowPtr(row), mOtherMatrix->rowPtr(col),
         mass);
@@ -88,6 +109,14 @@ unsigned r2, unsigned c2, float m2)
 {
     if (r1 == r2)
     {
+        mNumAlphaCalls += 1.f;
+        updateAverage(mNumAlphaCalls, mAvgPSparsity, mOtherMatrix->getRow(c1).sparsity());
+        updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getRow(r1).sparsity());
+
+        mNumAlphaCalls += 1.f;
+        updateAverage(mNumAlphaCalls, mAvgPSparsity, mOtherMatrix->getRow(c2).sparsity());
+        updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getRow(r2).sparsity());
+
         return gaps::algo::deltaLL(mDMatrix.nCol(), mDMatrix.rowPtr(r1),
             mSMatrix.rowPtr(r1), mAPMatrix.rowPtr(r1), mOtherMatrix->rowPtr(c1),
             m1, mOtherMatrix->rowPtr(c2), m2);
@@ -154,6 +183,10 @@ void PatternGibbsSampler::updateAPMatrix(unsigned row, unsigned col, float delta
 
 AlphaParameters PatternGibbsSampler::alphaParameters(unsigned row, unsigned col)
 {
+    mNumAlphaCalls += 1.f;
+    updateAverage(mNumAlphaCalls, mAvgASparsity, mOtherMatrix->getCol(row).sparsity());
+    updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getCol(col).sparsity());
+
     return gaps::algo::alphaParameters(mDMatrix.nRow(), mDMatrix.colPtr(col),
         mSMatrix.colPtr(col), mAPMatrix.colPtr(col), mOtherMatrix->colPtr(row));
 }
@@ -163,6 +196,14 @@ unsigned r2, unsigned c2)
 {
     if (c1 == c2)
     {
+        mNumAlphaCalls += 1.f;
+        updateAverage(mNumAlphaCalls, mAvgASparsity, mOtherMatrix->getCol(r1).sparsity());
+        updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getCol(c1).sparsity());
+
+        mNumAlphaCalls += 1.f;
+        updateAverage(mNumAlphaCalls, mAvgASparsity, mOtherMatrix->getCol(r2).sparsity());
+        updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getCol(c2).sparsity());
+
         return gaps::algo::alphaParameters(mDMatrix.nRow(), mDMatrix.colPtr(c1),
             mSMatrix.colPtr(c1), mAPMatrix.colPtr(c1), mOtherMatrix->colPtr(r1),
             mOtherMatrix->colPtr(r2));
@@ -172,6 +213,10 @@ unsigned r2, unsigned c2)
 
 float PatternGibbsSampler::computeDeltaLL(unsigned row, unsigned col, float mass)
 {
+    mNumAlphaCalls += 1.f;
+    updateAverage(mNumAlphaCalls, mAvgASparsity, mOtherMatrix->getCol(row).sparsity());
+    updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getCol(col).sparsity());
+
     return gaps::algo::deltaLL(mDMatrix.nRow(), mDMatrix.colPtr(col),
         mSMatrix.colPtr(col), mAPMatrix.colPtr(col), mOtherMatrix->colPtr(row),
         mass);
@@ -182,6 +227,14 @@ unsigned r2, unsigned c2, float m2)
 {
     if (c1 == c2)
     {
+        mNumAlphaCalls += 1.f;
+        updateAverage(mNumAlphaCalls, mAvgASparsity, mOtherMatrix->getCol(r1).sparsity());
+        updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getCol(c1).sparsity());
+
+        mNumAlphaCalls += 1.f;
+        updateAverage(mNumAlphaCalls, mAvgASparsity, mOtherMatrix->getCol(r2).sparsity());
+        updateAverage(mNumAlphaCalls, mAvgAPSparsity, mAPMatrix.getCol(c2).sparsity());
+
         return gaps::algo::deltaLL(mDMatrix.nRow(), mDMatrix.colPtr(c1),
             mSMatrix.colPtr(c1), mAPMatrix.colPtr(c1), mOtherMatrix->colPtr(r1),
             m1, mOtherMatrix->colPtr(r2), m2);
